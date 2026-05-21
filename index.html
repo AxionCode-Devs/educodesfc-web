@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel Principal - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="js/mock-db.js"></script>
+    <script src="js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Panel Principal";
+        window.activePage = "dashboard";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="dashboard-widgets">
+                    <div class="widget widget-miembros placeholder-shimmer" id="widget-miembros">
+                        <h3><i class="bi bi-people-fill"></i> Total Miembros</h3>
+                        <p class="widget-value" id="count-miembros">0</p>
+                    </div>
+                    <div class="widget widget-eventos placeholder-shimmer" id="widget-eventos">
+                        <h3><i class="bi bi-calendar-event-fill"></i> Próximos Eventos</h3>
+                        <p class="widget-value" id="count-eventos">0</p>
+                    </div>
+                    <div class="widget widget-pagos placeholder-shimmer" id="widget-pagos">
+                        <h3><i class="bi bi-credit-card-2-front-fill"></i> Pagos Pendientes</h3>
+                        <p class="widget-value" id="count-pagos">0</p>
+                    </div>
+                    <div class="widget widget-ingresos placeholder-shimmer" id="widget-ingresos">
+                        <h3><i class="bi bi-currency-dollar"></i> Total Ingresos (Mes)</h3> 
+                        <p class="widget-value" id="count-ingresos">$0.00</p>
+                    </div>
+                </div>
+
+                <h2>Resumen de Actividad Reciente</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-card-checklist"></i> Actividad</th>
+                            <th><i class="bi bi-calendar3"></i> Fecha</th>
+                            <th><i class="bi bi-person-circle"></i> Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody id="actividad-tbody">
+                        <tr>
+                            <td colspan="3" class="text-center py-4">Cargando actividad...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización de datos de la página -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // Ocultar widgets si el rol no tiene permisos para esas áreas
+            const user = window.MockDB.getCurrentUser();
+            const rol = user ? user.rol : "";
+            
+            if (rol === "cajero") {
+                const widgetEventos = document.getElementById("widget-eventos");
+                if (widgetEventos) widgetEventos.style.display = "none";
+            } else if (rol === "entrenador") {
+                const widgetMiembros = document.getElementById("widget-miembros");
+                const widgetPagos = document.getElementById("widget-pagos");
+                const widgetIngresos = document.getElementById("widget-ingresos");
+                
+                if (widgetMiembros) widgetMiembros.style.display = "none";
+                if (widgetPagos) widgetPagos.style.display = "none";
+                if (widgetIngresos) widgetIngresos.style.display = "none";
+            }
+
+            // Obtener datos para renderizar
+            const miembros = window.MockDB.getMembers();
+            const eventos = window.MockDB.getEvents();
+            const pagos = window.MockDB.getPayments();
+            const actividades = window.MockDB.getActivities();
+
+            // 2. Calcular estadísticas
+            const totalMiembros = miembros.length;
+
+            const hoyStr = new Date().toISOString().split('T')[0];
+            const proximosEventos = eventos.filter(e => e.estado === 'Programado' && e.fecha_inicio >= hoyStr).length;
+
+            const pagosPendientes = pagos.filter(p => p.estado === 'Pendiente' || p.estado === 'Atrasado').length;
+
+            // Calcular ingresos de este mes
+            const ahora = new Date();
+            const añoActual = ahora.getFullYear();
+            const mesActual = ahora.getMonth(); // 0-11
+            
+            const totalIngresos = pagos
+                .filter(p => {
+                    if (p.estado !== 'Completado') return false;
+                    const fechaReg = new Date(p.fecha_registro || p.fecha_pago);
+                    return fechaReg.getFullYear() === añoActual && fechaReg.getMonth() === mesActual;
+                })
+                .reduce((sum, p) => sum + parseFloat(p.monto), 0);
+
+            // 3. Renderizar widgets
+            document.getElementById("count-miembros").textContent = totalMiembros;
+            document.getElementById("count-eventos").textContent = proximosEventos;
+            document.getElementById("count-pagos").textContent = pagosPendientes;
+            document.getElementById("count-ingresos").textContent = `$${totalIngresos.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            // 4. Renderizar actividades recientes (máximo 5)
+            const tbody = document.getElementById("actividad-tbody");
+            tbody.innerHTML = "";
+
+            const ultimasActividades = actividades.slice(0, 5);
+
+            if (ultimasActividades.length > 0) {
+                ultimasActividades.forEach(act => {
+                    const row = document.createElement("tr");
+                    
+                    // Formatear la fecha
+                    let fechaFormateada = act.fecha;
+                    try {
+                        const dateObj = new Date(act.fecha);
+                        const dia = String(dateObj.getDate()).padStart(2, '0');
+                        const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const año = dateObj.getFullYear();
+                        const hora = String(dateObj.getHours()).padStart(2, '0');
+                        const min = String(dateObj.getMinutes()).padStart(2, '0');
+                        fechaFormateada = `${dia}/${mes}/${año} ${hora}:${min}`;
+                    } catch(e) {}
+
+                    row.innerHTML = `
+                        <td>${escapeHTML(act.accion)}</td>
+                        <td>${fechaFormateada}</td>
+                        <td>${escapeHTML(act.usuario)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="empty-row text-center">No hay actividad reciente</td>
+                    </tr>
+                `;
+            }
+        });
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
