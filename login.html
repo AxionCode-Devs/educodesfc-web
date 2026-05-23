@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login - Club Deportivo</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/global.css" />
+    <link rel="stylesheet" href="css/login.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="js/mock-db.js"></script>
+    <script src="js/layout.js" defer></script>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-container">
+            <div class="login-intro">
+                <div class="mb-3">
+                    <span class="badge" style="background: rgba(0, 194, 255, 0.12); color: var(--color-accent); border: 1.5px solid rgba(0, 194, 255, 0.3); font-size: 0.8em; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;">
+                        <i class="bi bi-display" style="font-size: 1.05em;"></i> Demo Visual Interactiva
+                    </span>
+                </div>
+                <img src="images/educodesfc.png" alt="Club Logo" class="club-logo" />
+                <h1>Educodes F.C.</h1>
+                <p>Bienvenido al sistema de gestión en la nube para clubes deportivos de alto rendimiento.</p>
+            </div>
+            <div class="login-form-area">
+                <h2>Iniciar Sesión</h2>
+
+                <!-- Bloque de error que se mostrará dinámicamente con JS -->
+                <div id="error-alert" class="error-message" style="display: none;"></div>
+
+                <form id="login-form" class="login-form" novalidate>
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="bi bi-person-fill"></i> Usuario
+                        </label>
+                        <input type="text" id="username" name="username" placeholder="Ingrese su nombre de usuario" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="bi bi-lock-fill"></i> Contraseña
+                        </label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" placeholder="••••••••" required />
+                            <i class="bi bi-eye toggle-password" onclick="togglePassword()"></i>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Ingresar</button>
+                </form>
+
+                <!-- Panel de Credenciales Rápido para Demostración -->
+                <div class="demo-access-card">
+                    <div class="demo-access-title">
+                        <i class="bi bi-shield-lock-fill"></i> Acceso de Prueba Rápido
+                    </div>
+                    <div class="demo-roles-grid">
+                        <button type="button" class="demo-role-btn" onclick="autoFillLogin('admin', 'admin')">
+                            <i class="bi bi-shield-fill-check"></i>
+                            <div>
+                                <strong>Administrador</strong>
+                                <span>admin / admin</span>
+                            </div>
+                        </button>
+                        <button type="button" class="demo-role-btn" onclick="autoFillLogin('cajero', 'cajero')">
+                            <i class="bi bi-cash-coin"></i>
+                            <div>
+                                <strong>Cajero</strong>
+                                <span>cajero / cajero</span>
+                            </div>
+                        </button>
+                        <button type="button" class="demo-role-btn" onclick="autoFillLogin('entrenador', 'entrenador')">
+                            <i class="bi bi-whistle-fill"></i>
+                            <div>
+                                <strong>Entrenador</strong>
+                                <span>entrenador / entrenador</span>
+                            </div>
+                        </button>
+                    </div>
+                    <!-- Nota informativa de la simulación local -->
+                    <div style="font-size: 0.75em; color: var(--color-dark-text-medium); margin-top: 14px; border-top: 1px solid var(--color-glass-border); padding-top: 10px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;">
+                        <i class="bi bi-info-circle-fill" style="color: var(--color-accent); font-size: 1.15em; flex-shrink: 0; margin-top: 1px;"></i>
+                        <span>Esta plataforma es una <strong>simulación cliente 100% interactiva</strong>. Todos los datos se gestionan de forma temporal en la memoria <code>localStorage</code> del navegador, permitiendo crear, editar o eliminar registros de manera autónoma sin requerir un backend activo.</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById("password");
+            const icon = document.querySelector(".toggle-password");
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                icon.classList.remove("bi-eye");
+                icon.classList.add("bi-eye-slash");
+            } else {
+                passwordInput.type = "password";
+                icon.classList.remove("bi-eye-slash");
+                icon.classList.add("bi-eye");
+            }
+        }
+
+        function autoFillLogin(username, password) {
+            const usernameInput = document.getElementById("username");
+            const passwordInput = document.getElementById("password");
+            const errorAlert = document.getElementById("error-alert");
+
+            // Ocultar alerta de error previa
+            errorAlert.style.display = "none";
+
+            // Limpiar clases de animación previas si las hay
+            usernameInput.classList.remove("flash-highlight");
+            passwordInput.classList.remove("flash-highlight");
+
+            // Forzar reflow para que el navegador reinicie la animación CSS
+            void usernameInput.offsetWidth;
+            void passwordInput.offsetWidth;
+
+            // Rellenar valores
+            usernameInput.value = username;
+            passwordInput.value = password;
+
+            // Lanzar la animación de parpadeo de enfoque
+            usernameInput.classList.add("flash-highlight");
+            passwordInput.classList.add("flash-highlight");
+        }
+
+        document.getElementById("login-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            
+            const usernameInput = document.getElementById("username").value.trim();
+            const passwordInput = document.getElementById("password").value.trim();
+            const errorAlert = document.getElementById("error-alert");
+
+            if (!usernameInput || !passwordInput) {
+                errorAlert.textContent = "Por favor, complete todos los campos.";
+                errorAlert.style.display = "block";
+                return;
+            }
+
+            const result = window.MockDB.login(usernameInput, passwordInput);
+            
+            if (result.success) {
+                errorAlert.style.display = "none";
+                window.location.href = "index.html";
+            } else {
+                errorAlert.textContent = result.message;
+                errorAlert.style.display = "block";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Pago - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Editar Pago";
+        window.activePage = "pagos";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 id="page-subtitle">Editar Pago</h2>
+                    <a href="index.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a Pagos
+                    </a>
+                </div>
+
+                <!-- Mensaje de error local si surge alguno -->
+                <div id="error-alert" class="alert alert-danger mb-4" role="alert" style="display: none;"></div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Editar Detalles del Pago</h5>
+                        <form id="editar-pago-form" novalidate>
+                            
+                            <div class="mb-3">
+                                <label for="miembro_id" class="form-label">Miembro:</label>
+                                <select class="form-select" id="miembro_id" required>
+                                    <option value="">Seleccione un miembro</option>
+                                    <!-- Miembros cargados dinámicamente -->
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="concepto" class="form-label">Concepto del Pago:</label>
+                                <select class="form-select" id="concepto" required>
+                                    <option value="">Seleccione un concepto</option>
+                                    <option value="Cuota Mensual">Cuota Mensual</option>
+                                    <option value="Inscripción Torneo">Inscripción Torneo</option>
+                                    <option value="Uniformes/Equipamiento">Uniformes/Equipamiento</option>
+                                    <option value="Actividad Especial">Actividad Especial</option>
+                                    <option value="Sanción/Multa">Sanción/Multa</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="monto" class="form-label">Monto ($):</label>
+                                <input type="number" class="form-control" id="monto" step="0.01" min="0.01" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="fecha_pago" class="form-label">Fecha de Pago:</label>
+                                <input type="date" class="form-control" id="fecha_pago" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="metodo_pago" class="form-label">Método de Pago:</label>
+                                <select class="form-select" id="metodo_pago" required>
+                                    <option value="">Seleccione un método</option>
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                                    <option value="Tarjeta de Crédito/Débito">Tarjeta de Crédito/Débito</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="referencia" class="form-label">Referencia/Comprobante (Opcional):</label>
+                                <input type="text" class="form-control" id="referencia" placeholder="Ej: No. Transacción, Código Recibo">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="estado" class="form-label">Estado del Pago:</label>
+                                <select class="form-select" id="estado" required>
+                                    <option value="">Seleccione un estado</option>
+                                    <option value="Completado">Completado</option>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Atrasado">Atrasado</option>
+                                    <option value="Anulado">Anulado</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="notas_adicionales" class="form-label">Notas Adicionales (Opcional):</label>
+                                <textarea class="form-control" id="notas_adicionales" rows="3" placeholder="Comentarios adicionales..."></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="bi bi-arrow-up-circle me-2"></i>Actualizar Pago
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y control de envío -->
+    <script>
+        let pagoId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Validar que el usuario tenga rol adecuado para editar pagos (admin o cajero)
+            const user = window.MockDB.getCurrentUser();
+            if (user && user.rol !== "administrador" && user.rol !== "cajero") {
+                document.getElementById("error-alert").textContent = "No tienes permisos para editar pagos. Redirigiendo...";
+                document.getElementById("error-alert").style.display = "block";
+                setTimeout(() => {
+                    window.location.href = "index.html";
+                }, 2000);
+                return;
+            }
+
+            // 2. Obtener el ID del pago de la URL
+            const urlParams = new URLSearchParams(window.location.search);
+            pagoId = parseInt(urlParams.get("id"));
+
+            if (!pagoId || isNaN(pagoId)) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("ID de pago no válido.");
+                return;
+            }
+
+            // 3. Cargar la lista de miembros
+            cargarMiembros();
+
+            // 4. Obtener el pago de la base de datos local
+            const pago = window.MockDB.getPayment(pagoId);
+            if (!pago) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("El registro de pago no existe.");
+                return;
+            }
+
+            // 5. Pre-llenar campos
+            document.getElementById("page-subtitle").textContent = `Editar Pago #${pago.id}`;
+            document.getElementById("miembro_id").value = pago.miembro_id;
+            document.getElementById("concepto").value = pago.concepto;
+            document.getElementById("monto").value = pago.monto;
+            document.getElementById("fecha_pago").value = pago.fecha_pago;
+            document.getElementById("metodo_pago").value = pago.metodo_pago || "";
+            document.getElementById("referencia").value = pago.referencia || "";
+            document.getElementById("estado").value = pago.estado;
+            document.getElementById("notas_adicionales").value = pago.notas_adicionales || "";
+
+            // 6. Procesar envío del formulario
+            const form = document.getElementById("editar-pago-form");
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+
+                const errorBox = document.getElementById("error-alert");
+                errorBox.style.display = "none";
+                errorBox.innerHTML = "";
+
+                const miembro_id = document.getElementById("miembro_id").value;
+                const concepto = document.getElementById("concepto").value;
+                const monto = parseFloat(document.getElementById("monto").value);
+                const fecha_pago = document.getElementById("fecha_pago").value;
+                const metodo_pago = document.getElementById("metodo_pago").value;
+                const referencia = document.getElementById("referencia").value.trim();
+                const estado = document.getElementById("estado").value;
+                const notas_adicionales = document.getElementById("notas_adicionales").value.trim();
+
+                const errors = [];
+
+                if (!miembro_id) {
+                    errors.push("Por favor, seleccione un miembro.");
+                }
+                if (!concepto) {
+                    errors.push("El concepto del pago es obligatorio.");
+                }
+                if (isNaN(monto) || monto <= 0) {
+                    errors.push("El monto debe ser un número positivo válido.");
+                }
+                if (!fecha_pago) {
+                    errors.push("La fecha de pago es obligatoria.");
+                } else if (new Date(fecha_pago) > new Date()) {
+                    errors.push("La fecha de pago no puede ser en el futuro.");
+                }
+                if (!metodo_pago) {
+                    errors.push("El método de pago es obligatorio.");
+                }
+                if (!estado) {
+                    errors.push("El estado de pago es obligatorio.");
+                }
+
+                if (errors.length > 0) {
+                    errorBox.innerHTML = errors.join("<br>");
+                    errorBox.style.display = "block";
+                    window.scrollTo(0, 0);
+                    return;
+                }
+
+                try {
+                    const updated = window.MockDB.updatePayment(pagoId, {
+                        miembro_id,
+                        concepto,
+                        monto,
+                        fecha_pago,
+                        metodo_pago,
+                        referencia,
+                        estado,
+                        notas_adicionales
+                    });
+
+                    if (updated) {
+                        window.location.href = "index.html?status=success_edit";
+                    } else {
+                        throw new Error("No se pudo actualizar el registro de pago.");
+                    }
+                } catch(error) {
+                    errorBox.textContent = "Error al guardar los cambios: " + error.message;
+                    errorBox.style.display = "block";
+                    window.scrollTo(0, 0);
+                }
+            });
+        });
+
+        function cargarMiembros() {
+            const selectMiembros = document.getElementById("miembro_id");
+            const miembros = window.MockDB.getMembers();
+
+            // Ordenar alfabéticamente
+            miembros.sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo));
+
+            miembros.forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m.id;
+                opt.textContent = `${m.nombre_completo} (${m.tipo_miembro})`;
+                selectMiembros.appendChild(opt);
+            });
+        }
+    </script>
+</body>
+</html>

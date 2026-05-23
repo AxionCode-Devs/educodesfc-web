@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalles de Categoría - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Detalles de Categoría de Equipo";
+        window.activePage = "equipo";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 id="page-subtitle">Detalles de la Categoría</h2>
+                    <a href="index.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a Categorías
+                    </a>
+                </div>
+
+                <div id="cat-not-found" class="alert alert-danger" style="display: none;">
+                    Categoría no encontrada.
+                </div>
+
+                <div id="cat-details-container" style="display: none;">
+                    <!-- Información General -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">Información General de la Plantilla</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <strong>Nombre de la Plantilla:</strong> <span id="cat-name"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Categoría de Edad:</strong> <span id="cat-age"></span>
+                                </div>
+                                <div class="col-md-12">
+                                    <strong>Descripción:</strong> <span id="cat-desc" style="white-space: pre-wrap;"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Entrenador Principal:</strong> <span id="cat-coach"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Horario Entrenamiento:</strong> <span id="cat-schedule"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Campo Asignado:</strong> <span id="cat-field"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Estado:</strong> <span id="cat-status"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Fecha de Creación:</strong> <span id="cat-created">21/05/2026 10:00</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Última Actualización:</strong> <span id="cat-updated">21/05/2026 12:00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Jugadores y Entrenadores -->
+                    <div class="row">
+                        <!-- Jugadores Asignados -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-success text-white">
+                                    <h4 class="mb-0"><i class="bi bi-person-fill me-2"></i>Jugadores Asignados (<span id="players-count">0</span>)</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="players-list-container" class="list-group">
+                                        <!-- Jugadores inyectados dinámicamente -->
+                                    </div>
+                                    <div id="players-empty-alert" class="alert alert-info mb-0" style="display: none;">
+                                        No hay jugadores asignados a esta categoría.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Entrenadores y Personal de Apoyo -->
+                        <div class="col-lg-6 mb-4">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-info text-white">
+                                    <h4 class="mb-0"><i class="bi bi-person-video3 me-2"></i>Entrenadores y Personal de Apoyo (<span id="staff-count">0</span>)</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="staff-section" style="display: none;">
+                                        <h6 class="border-bottom pb-2 mb-3 text-info">Entrenadores Auxiliares</h6>
+                                        <div id="coaches-list-container" class="list-group mb-3">
+                                            <!-- Entrenadores inyectados dinámicamente -->
+                                        </div>
+                                    </div>
+
+                                    <div id="support-section" style="display: none;">
+                                        <h6 class="border-bottom pb-2 mb-3 text-secondary">Personal de Apoyo y Directivos</h6>
+                                        <div id="support-list-container" class="list-group">
+                                            <!-- Personal de apoyo inyectado dinámicamente -->
+                                        </div>
+                                    </div>
+
+                                    <div id="staff-empty-alert" class="alert alert-info mb-0" style="display: none;">
+                                        No hay otros miembros (entrenadores, directivos, personal de apoyo) asignados a esta categoría.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Obtener ID de la categoría
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has("id")) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("ID de categoría no proporcionado.");
+                return;
+            }
+
+            const catId = parseInt(urlParams.get("id"));
+            const cat = window.MockDB.getCategory(catId);
+
+            if (!cat) {
+                document.getElementById("cat-not-found").style.display = "block";
+                return;
+            }
+
+            // Rellenar cabecera y título
+            document.getElementById("page-subtitle").textContent = `Detalles de la Categoría: ${cat.nombre_plantilla}`;
+            document.getElementById("cat-name").textContent = cat.nombre_plantilla;
+            document.getElementById("cat-age").textContent = cat.categoria_edad || "N/A";
+            document.getElementById("cat-desc").textContent = cat.descripcion || "Sin descripción";
+            document.getElementById("cat-schedule").textContent = cat.horario_entrenamiento_habitual || "No definido";
+            document.getElementById("cat-field").textContent = cat.campo_entrenamiento_asignado || "No definido";
+
+            // Estado badge
+            const statusSpan = document.getElementById("cat-status");
+            const estado = cat.estado_plantilla || "Activa";
+            let badgeClass = "secondary";
+            if (estado === "Activa") badgeClass = "success";
+            else if (estado === "Inactiva") badgeClass = "danger";
+            else if (estado === "En Formación") badgeClass = "warning";
+            statusSpan.className = `badge bg-${badgeClass}`;
+            statusSpan.textContent = estado;
+
+            // Cargar Entrenador Principal
+            const miembros = window.MockDB.getMembers();
+            let entrenadorPrincipal = null;
+            if (cat.entrenador_principal_id) {
+                entrenadorPrincipal = miembros.find(m => m.id === parseInt(cat.entrenador_principal_id));
+            }
+
+            const coachSpan = document.getElementById("cat-coach");
+            if (entrenadorPrincipal) {
+                coachSpan.innerHTML = `<a href="ver_miembro.html?id=${entrenadorPrincipal.id}" class="fw-semibold text-decoration-none">${escapeHTML(entrenadorPrincipal.nombre_completo)}</a>`;
+            } else {
+                coachSpan.textContent = "Sin asignar";
+            }
+
+            // 2. Filtrar y clasificar miembros asociados
+            const miembrosAsociados = miembros.filter(m => m.plantilla_id === catId);
+
+            const jugadores = [];
+            const entrenadoresAux = [];
+            const personalApoyo = [];
+
+            miembrosAsociados.forEach(m => {
+                if (m.tipo_miembro === "Jugador") {
+                    jugadores.push(m);
+                } else if (m.tipo_miembro === "Entrenador") {
+                    // Si es el entrenador principal, no lo listamos como auxiliar
+                    if (!entrenadorPrincipal || m.id !== entrenadorPrincipal.id) {
+                        entrenadoresAux.push(m);
+                    }
+                } else {
+                    personalApoyo.push(m);
+                }
+            });
+
+            // 3. Renderizar Jugadores
+            document.getElementById("players-count").textContent = jugadores.length;
+            const playersList = document.getElementById("players-list-container");
+            playersList.innerHTML = "";
+
+            if (jugadores.length > 0) {
+                jugadores.forEach(jugador => {
+                    const item = document.createElement("a");
+                    item.href = `ver_estadisticas_jugador.html?id=${jugador.id}`;
+                    item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+                    
+                    const details = [];
+                    if (jugador.dorsal) details.push(`Dorsal: ${jugador.dorsal}`);
+                    if (jugador.posicion) details.push(`Posición: ${jugador.posicion}`);
+                    const detailsStr = details.length > 0 ? details.join(", ") : "Sin detalles de jugador";
+
+                    item.innerHTML = `
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">${escapeHTML(jugador.nombre_completo)}</h6>
+                            <small class="text-muted">${escapeHTML(detailsStr)}</small>
+                        </div>
+                        <i class="bi bi-arrow-right-circle text-primary" style="font-size: 1.2rem;"></i>
+                    `;
+                    playersList.appendChild(item);
+                });
+            } else {
+                document.getElementById("players-empty-alert").style.display = "block";
+            }
+
+            // 4. Renderizar Entrenadores Auxiliares y Personal de Apoyo
+            document.getElementById("staff-count").textContent = entrenadoresAux.length + personalApoyo.length;
+            const coachesList = document.getElementById("coaches-list-container");
+            const supportList = document.getElementById("support-list-container");
+            coachesList.innerHTML = "";
+            supportList.innerHTML = "";
+
+            if (entrenadoresAux.length > 0) {
+                document.getElementById("staff-section").style.display = "block";
+                entrenadoresAux.forEach(ent => {
+                    const item = document.createElement("a");
+                    item.href = `ver_miembro.html?id=${ent.id}`;
+                    item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+                    item.innerHTML = `
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">${escapeHTML(ent.nombre_completo)}</h6>
+                            <small class="text-muted">${escapeHTML(ent.email || 'Sin correo electrónico')}</small>
+                        </div>
+                        <i class="bi bi-arrow-right-circle text-primary" style="font-size: 1.2rem;"></i>
+                    `;
+                    coachesList.appendChild(item);
+                });
+            }
+
+            if (personalApoyo.length > 0) {
+                document.getElementById("support-section").style.display = "block";
+                personalApoyo.forEach(per => {
+                    const item = document.createElement("a");
+                    item.href = `ver_miembro.html?id=${per.id}`;
+                    item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+                    item.innerHTML = `
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">${escapeHTML(per.nombre_completo)} (${escapeHTML(per.tipo_miembro)})</h6>
+                            <small class="text-muted">${escapeHTML(per.email || 'Sin correo electrónico')}</small>
+                        </div>
+                        <i class="bi bi-arrow-right-circle text-primary" style="font-size: 1.2rem;"></i>
+                    `;
+                    supportList.appendChild(item);
+                });
+            }
+
+            if (entrenadoresAux.length === 0 && personalApoyo.length === 0) {
+                document.getElementById("staff-empty-alert").style.display = "block";
+            }
+
+            document.getElementById("cat-details-container").style.display = "block";
+        });
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

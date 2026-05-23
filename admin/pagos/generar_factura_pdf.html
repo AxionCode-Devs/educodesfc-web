@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Factura de Pago - Club Deportivo</title>
+    <style>
+        @page { margin: 30px; }
+        body { 
+            font-family: "Helvetica Neue", "Helvetica", Arial, sans-serif; 
+            font-size: 11px; 
+            line-height: 1.5; 
+            color: #333; 
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa; 
+        }
+        .actions-bar {
+            max-width: 800px;
+            margin: 20px auto 0 auto;
+            padding: 10px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #eee;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            vertical-align: middle;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: .375rem .75rem;
+            font-size: 12px;
+            line-height: 1.5;
+            border-radius: .25rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out;
+        }
+        .btn-primary {
+            color: #fff;
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+        .btn-secondary {
+            color: #fff;
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5c636a;
+            border-color: #565e64;
+        }
+        .invoice-box { 
+            max-width: 800px; 
+            margin: 0 auto 30px auto; 
+            padding: 25px; 
+            border: 1px solid #eee; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, .10); 
+            font-size: 13px; 
+            line-height: 22px; 
+            color: #555; 
+            background: #fff;
+            border-radius: 0 0 4px 4px;
+        }
+        .invoice-box table { 
+            width: 100%; 
+            line-height: inherit; 
+            text-align: left; 
+            border-collapse: collapse; 
+        }
+        .invoice-box table td { 
+            padding: 7px; 
+            vertical-align: top; 
+        }
+        .invoice-box table tr td:nth-child(2) { 
+            text-align: right; 
+        }
+        .invoice-box table tr.top table td { 
+            padding-bottom: 15px; 
+        }
+        .invoice-box table tr.top table td.title { 
+            font-size: 32px; 
+            line-height: 1; 
+            color: #007bff; 
+            font-weight: bold;
+        }
+        .invoice-box table tr.information table td { 
+            padding-bottom: 20px; 
+        }
+        .invoice-box table tr.heading td { 
+            background: #007bff; 
+            color: #fff; 
+            border-bottom: 1px solid #ddd; 
+            font-weight: bold; 
+            padding: 8px 7px; 
+            text-transform: uppercase; 
+        }
+        .invoice-box table tr.details td { 
+            padding-bottom: 15px; 
+        }
+        .invoice-box table tr.item td{ 
+            border-bottom: 1px solid #f0f0f0; 
+        }
+        .invoice-box table tr.item.last td { 
+            border-bottom: none; 
+        }
+        .invoice-box table tr.total td:nth-child(2) { 
+            border-top: 2px solid #007bff; 
+            font-weight: bold; 
+            font-size: 17px; 
+            color: #333;
+            padding-top: 10px;
+        }
+        .invoice-box .company-info, .client-info {
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .invoice-box .company-info strong, .client-info strong {
+            color: #007bff;
+        }
+        .invoice-box .invoice-id {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        .invoice-box .invoice-dates {
+            font-size: 11px;
+            color: #777;
+        }
+
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .font-weight-bold { font-weight: bold; }
+        .mb-5 { margin-bottom: 5px; }
+        .mt-10 { margin-top: 10px; }
+        .mt-20 { margin-top: 20px; }
+
+        footer { 
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center; 
+            font-size: 10px; 
+            color: #888; 
+            border-top: 1px solid #eee; 
+            padding-top: 10px;
+            padding-bottom: 30px;
+        }
+        footer a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .notes-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed #eee; 
+            font-size: 11px;
+            color: #666;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #fff;
+            background-color: green; 
+        }
+
+        /* Ocultar barra de acciones en la impresión */
+        @media print {
+            body {
+                background-color: #fff;
+            }
+            .actions-bar {
+                display: none;
+            }
+            .invoice-box {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                margin: 0;
+            }
+        }
+    </style>
+    <script src="../../js/mock-db.js"></script>
+    <script>
+        // Si no está logueado o es entrenador, patada
+        const user = window.MockDB ? window.MockDB.getCurrentUser() : null;
+        if (!user) {
+            document.documentElement.style.display = "none";
+            window.location.href = "../../login.html";
+        } else if (user.rol === "entrenador") {
+            document.documentElement.style.display = "none";
+            window.location.href = "../../index.html?error=unauthorized";
+        }
+    </script>
+</head>
+<body>
+    <!-- Barra de acciones en la vista previa del navegador -->
+    <div class="actions-bar">
+        <a href="index.html" class="btn btn-secondary">&larr; Volver a Pagos</a>
+        <button onclick="window.print()" class="btn btn-primary">Imprimir Factura / Guardar PDF</button>
+    </div>
+
+    <div class="invoice-box" id="invoice-content">
+        <!-- Renderizado dinámico -->
+        <p style="text-align: center; padding: 50px;">Generando factura...</p>
+    </div>
+    
+    <footer id="invoice-footer" style="display: none;">
+        <p>Gracias por tu pago. Si tienes alguna pregunta sobre esta factura, contáctanos.</p>
+        <p>Generado por <a href="#" id="company-link">EDUCODES FC</a> &copy; <span id="current-year">2026</span></p>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Obtener ID del pago
+            const urlParams = new URLSearchParams(window.location.search);
+            const pagoId = parseInt(urlParams.get("id"));
+
+            if (!pagoId || isNaN(pagoId)) {
+                document.getElementById("invoice-content").innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: red; font-weight: bold;">
+                        Error: ID de pago no válido para generar factura.
+                    </div>
+                `;
+                return;
+            }
+
+            // 2. Obtener datos del pago
+            const pago = window.MockDB.getPayment(pagoId);
+            if (!pago) {
+                document.getElementById("invoice-content").innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: red; font-weight: bold;">
+                        Error: Pago no encontrado.
+                    </div>
+                `;
+                return;
+            }
+
+            if (pago.estado !== 'Completado') {
+                document.getElementById("invoice-content").innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: red; font-weight: bold;">
+                        Error: Solo se pueden generar facturas para pagos con estado "Completado".
+                    </div>
+                `;
+                return;
+            }
+
+            // 3. Obtener datos del miembro
+            const miembro = window.MockDB.getMember(pago.miembro_id) || {};
+
+            const nombreEmpresa = "EDUCODES FC";
+            const direccionEmpresa = "Km. 11 carretera a Santa Tecla, La Libertad, El Salvador";
+            const emailEmpresa = "educodesfc@gmail.com";
+            const telefonoEmpresa = "+503 2278 8700";
+
+            // 4. Formatear fechas
+            const fechaReg = formatDate(pago.fecha_registro || pago.fecha_pago);
+            const fechaPago = formatDate(pago.fecha_pago);
+
+            // 5. Inyectar contenido
+            const content = `
+                <table cellpadding="0" cellspacing="0">
+                    <tr class="top">
+                        <td colspan="2">
+                            <table>
+                                <tr>
+                                    <td class="title">
+                                        ${escapeHTML(nombreEmpresa)}
+                                    </td>
+                                    <td class="text-right">
+                                        <div class="invoice-id">Factura #: <strong>FAC-${String(pago.id).padStart(5, '0')}</strong></div>
+                                        <div class="invoice-dates">
+                                            Fecha de Emisión: ${fechaReg}<br>
+                                            Fecha de Pago: ${fechaPago}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <tr class="information">
+                        <td colspan="2">
+                            <table>
+                                <tr>
+                                    <td class="company-info">
+                                        <strong>De:</strong><br>
+                                        ${escapeHTML(nombreEmpresa)}<br>
+                                        ${escapeHTML(direccionEmpresa)}<br>
+                                        Email: ${escapeHTML(emailEmpresa)}<br>
+                                        Teléfono: ${escapeHTML(telefonoEmpresa)}
+                                    </td>
+                                    <td class="text-right client-info">
+                                        <strong>Para:</strong><br>
+                                        Miembro ID: <strong>${pago.miembro_id || 'N/A'}</strong><br>
+                                        Nombre: <strong>${escapeHTML(pago.nombre_miembro || 'N/A')}</strong><br>
+                                        Email: <strong>${escapeHTML(miembro.email || 'N/A')}</strong><br>
+                                        Teléfono: <strong>${escapeHTML(miembro.telefono || 'N/A')}</strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <tr class="heading">
+                        <td class="text-left">DESCRIPCIÓN</td>
+                        <td>MONTO</td>
+                    </tr>
+                    
+                    <tr class="item">
+                        <td class="text-left">${escapeHTML(pago.concepto)}</td>
+                        <td class="text-right">$ ${pago.monto.toFixed(2)}</td>
+                    </tr>
+                    
+                    <tr class="details">
+                        <td class="text-left">Método de Pago: ${escapeHTML(pago.metodo_pago)}</td>
+                        <td></td>
+                    </tr>
+                    ${pago.referencia ? `
+                        <tr class="details">
+                            <td class="text-left">Referencia: ${escapeHTML(pago.referencia)}</td>
+                            <td></td>
+                        </tr>
+                    ` : ''}
+                    
+                    <tr class="total">
+                        <td></td>
+                        <td class="text-right">
+                            Total Pagado: <strong>$ ${pago.monto.toFixed(2)}</strong>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="mt-20">
+                    <p class="mb-5"><strong>Estado del Pago:</strong> <span class="status-badge">${escapeHTML(pago.estado)}</span></p>
+                    <p><strong>Registrado por:</strong> ${escapeHTML(pago.registrado_por || 'Sistema')}</p>
+                </div>
+                ${pago.notes_adicionales || pago.notas_adicionales ? `
+                    <div class="notes-section">
+                        <p class="font-weight-bold">Notas Adicionales:</p>
+                        <p>${escapeHTML(pago.notes_adicionales || pago.notas_adicionales).replace(/\n/g, '<br>')}</p>
+                    </div>
+                ` : ''}
+            `;
+
+            document.getElementById("invoice-content").innerHTML = content;
+            
+            // Configurar pie de página
+            document.getElementById("company-link").href = `mailto:${emailEmpresa}`;
+            document.getElementById("company-link").textContent = nombreEmpresa;
+            document.getElementById("current-year").textContent = new Date().getFullYear();
+            document.getElementById("invoice-footer").style.display = "block";
+
+            // Lanzar impresión automática después de una pequeña pausa para asegurar el render
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        });
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                // Puede ser YYYY-MM-DD o YYYY-MM-DD HH:MM:SS
+                const onlyDate = dateStr.split(' ')[0];
+                const [year, month, day] = onlyDate.split('-');
+                return `${day}/${month}/${year}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;')
+                              .replace(/</g, '&lt;')
+                              .replace(/>/g, '&gt;')
+                              .replace(/"/g, '&quot;')
+                              .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

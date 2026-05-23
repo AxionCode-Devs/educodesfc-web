@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Pagos - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Gestión de Pagos";
+        window.activePage = "pagos";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Gestión de Pagos</h2>
+                    <a href="../../index.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver al Panel Principal
+                    </a>
+                </div>
+
+                <!-- Mensaje de Alerta de Estado -->
+                <div id="status-alert" class="alert alert-success mb-4" role="alert" style="display: none;"></div>
+
+                <div class="action-buttons mb-4">
+                    <a href="registrar_pago.html" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Registrar Nuevo Pago
+                    </a>
+                </div>
+
+                <!-- Contenedor para las tablas de pagos agrupadas -->
+                <div id="pagos-agrupados-container">
+                    <!-- Se cargará dinámicamente -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para Confirmar Pago (Ingreso de Datos) -->
+    <div class="modal fade" id="confirmarPagoModal" tabindex="-1" aria-labelledby="confirmarPagoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="confirmar-pago-form">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="confirmarPagoModalLabel"><i class="bi bi-check-circle me-2"></i>Confirmar Pago</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="modal-pago-id" value="">
+                        <p>Estás a punto de confirmar el pago para <strong id="modal-miembro-nombre"></strong>.</p>
+                        
+                        <div class="mb-3">
+                            <label for="modal-metodo" class="form-label">Método de Pago:</label>
+                            <select id="modal-metodo" class="form-select" required>
+                                <option value="Efectivo" selected>Efectivo</option>
+                                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                                <option value="Tarjeta de Crédito/Débito">Tarjeta de Crédito/Débito</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="modal-referencia" class="form-label">Referencia / Comprobante (Opcional):</label>
+                            <input type="text" id="modal-referencia" class="form-control" placeholder="Ej: TRF-92818, EF-3818">
+                            <div class="form-text text-muted">Si se deja vacío, se generará una referencia aleatoria.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Confirmar y Registrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Preguntar Descarga de Factura -->
+    <div class="modal fade" id="askDownloadInvoiceModal" tabindex="-1" aria-labelledby="askDownloadInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="askDownloadInvoiceModalLabel">Pago Confirmado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>El pago ha sido confirmado exitosamente. ¿Deseas descargar la factura ahora?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, gracias</button>
+                    <button type="button" class="btn btn-primary" id="confirmDownloadInvoiceBtn">Sí, descargar factura</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de inicialización -->
+    <script>
+        let confirmarModalObj = null;
+        let facturaModalObj = null;
+        let invoiceIdToDownload = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // Inicializar modals de Bootstrap
+            confirmarModalObj = new bootstrap.Modal(document.getElementById('confirmarPagoModal'));
+            facturaModalObj = new bootstrap.Modal(document.getElementById('askDownloadInvoiceModal'));
+
+            // Escuchar submit del form de confirmación
+            document.getElementById("confirmar-pago-form").addEventListener("submit", (e) => {
+                e.preventDefault();
+                const id = document.getElementById("modal-pago-id").value;
+                const metodo = document.getElementById("modal-metodo").value;
+                const referencia = document.getElementById("modal-referencia").value.trim();
+
+                const updated = window.MockDB.confirmPayment(id, metodo, referencia);
+                if (updated) {
+                    confirmarModalObj.hide();
+                    
+                    // Renderizar de nuevo
+                    renderPagos();
+                    
+                    // Configurar y abrir modal de factura
+                    invoiceIdToDownload = id;
+                    facturaModalObj.show();
+                    
+                    // Mostrar alerta de éxito
+                    showSuccessAlert("¡Pago confirmado exitosamente!");
+                } else {
+                    alert("Error al confirmar el pago.");
+                }
+            });
+
+            // Escuchar click de descarga de factura
+            document.getElementById('confirmDownloadInvoiceBtn').addEventListener('click', () => {
+                if (invoiceIdToDownload) {
+                    window.open(`generar_factura_pdf.html?id=${invoiceIdToDownload}`, '_blank');
+                }
+                facturaModalObj.hide();
+            });
+
+            // Resetear datos al ocultar modal de factura
+            document.getElementById('askDownloadInvoiceModal').addEventListener('hidden.bs.modal', () => {
+                invoiceIdToDownload = null;
+            });
+
+            // 1. Mostrar alertas basadas en Query Params
+            showQueryParamsAlerts();
+
+            // 2. Renderizar pagos agrupados
+            renderPagos();
+        });
+
+        function renderPagos() {
+            const container = document.getElementById("pagos-agrupados-container");
+            container.innerHTML = "";
+
+            const pagos = window.MockDB.getPayments();
+            const currentUser = window.MockDB.getCurrentUser();
+            const rol = currentUser ? currentUser.rol : "";
+
+            // Agrupar
+            const pagosAgrupados = {
+                'Pendiente': [],
+                'Completado': [],
+                'Atrasado': [],
+                'Anulado': []
+            };
+
+            pagos.forEach(p => {
+                if (pagosAgrupados.hasOwnProperty(p.estado)) {
+                    pagosAgrupados[p.estado].push(p);
+                }
+            });
+
+            const estadosConfig = {
+                'Pendiente': { label: 'Pendientes', badgeClass: 'bg-warning text-dark' },
+                'Completado': { label: 'Completados', badgeClass: 'bg-success text-white' },
+                'Atrasado': { label: 'Atrasados', badgeClass: 'bg-danger text-white' },
+                'Anulado': { label: 'Anulados', badgeClass: 'bg-secondary text-white' }
+            };
+
+            Object.entries(estadosConfig).forEach(([estadoKey, config]) => {
+                const lista = pagosAgrupados[estadoKey];
+                const card = document.createElement("div");
+                card.className = "card shadow-sm mb-4";
+
+                card.innerHTML = `
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Pagos <span class="badge ${config.badgeClass}">${config.label}</span></h5>
+                        <span class="badge ${config.badgeClass} fs-6">${lista.length}</span>
+                    </div>
+                    <div class="card-body">
+                        ${lista.length > 0 ? `
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover align-middle">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>ID Pago</th>
+                                            <th>Miembro</th>
+                                            <th>Concepto</th>
+                                            <th>Monto</th>
+                                            <th>Fecha de Pago</th>
+                                            <th>Método</th>
+                                            <th>Referencia</th>
+                                            <th>Estado</th>
+                                            <th>Registrado Por</th>
+                                            <th>Fecha Registro</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${lista.map(p => {
+                                            const isPending = p.estado === 'Pendiente';
+                                            const isCompleted = p.estado === 'Completado';
+                                            const isAnulado = p.estado === 'Anulado';
+                                            const showEdit = !isCompleted && !isAnulado;
+                                            const canConfirm = isPending && (rol === 'administrador' || rol === 'cajero');
+
+                                            return `
+                                                <tr>
+                                                    <td>${p.id}</td>
+                                                    <td class="fw-bold">${escapeHTML(p.nombre_miembro)}</td>
+                                                    <td>${escapeHTML(p.concepto)}</td>
+                                                    <td class="fw-bold">$${p.monto.toFixed(2)}</td>
+                                                    <td>${formatDate(p.fecha_pago)}</td>
+                                                    <td>${escapeHTML(p.metodo_pago) || 'N/A'}</td>
+                                                    <td>${escapeHTML(p.referencia) || 'N/A'}</td>
+                                                    <td><span class="badge ${config.badgeClass}">${escapeHTML(p.estado)}</span></td>
+                                                    <td>${escapeHTML(p.registrado_por)}</td>
+                                                    <td>${formatDateTime(p.fecha_registro)}</td>
+                                                    <td>
+                                                        <div class="d-flex flex-nowrap gap-1">
+                                                            ${showEdit ? `
+                                                                <a href="editar_pago.html?id=${p.id}" class="btn btn-sm btn-info text-white" title="Editar Pago">
+                                                                    <i class="bi bi-pencil-square"></i>
+                                                                </a>
+                                                            ` : ''}
+
+                                                            ${canConfirm ? `
+                                                                <button onclick="abrirConfirmarPagoModal(${p.id}, '${escapeJS(p.nombre_miembro)}')" class="btn btn-sm btn-success" title="Confirmar Pago">
+                                                                    <i class="bi bi-check-circle"></i>
+                                                                </button>
+                                                            ` : ''}
+
+                                                            ${isCompleted ? `
+                                                                <a href="generar_factura_pdf.html?id=${p.id}" class="btn btn-sm btn-primary" title="Ver/Imprimir Factura" target="_blank">
+                                                                    <i class="bi bi-file-earmark-arrow-down"></i>
+                                                                </a>
+                                                            ` : ''}
+
+                                                            <button onclick="eliminarPago(${p.id}, '${escapeJS(p.nombre_miembro)}', '${escapeJS(p.concepto)}')" class="btn btn-sm btn-danger" title="Eliminar Pago">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : `
+                            <p class="text-center text-muted mb-0 py-3">No se encontraron pagos con estado "${escapeHTML(estadoKey)}" registrados.</p>
+                        `}
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function abrirConfirmarPagoModal(id, miembroNombre) {
+            document.getElementById("modal-pago-id").value = id;
+            document.getElementById("modal-miembro-nombre").textContent = miembroNombre;
+            document.getElementById("modal-referencia").value = "";
+            confirmarModalObj.show();
+        }
+
+        function eliminarPago(id, miembro, concepto) {
+            if (confirm(`¿Estás seguro de eliminar el pago de "${miembro}" por concepto de "${concepto}"? Esta acción es irreversible.`)) {
+                const success = window.MockDB.deletePayment(id);
+                if (success) {
+                    showSuccessAlert("¡Pago eliminado correctamente!");
+                    renderPagos();
+                } else {
+                    alert("Error al eliminar el pago.");
+                }
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const [year, month, day] = dateStr.split('-');
+                return `${day}/${month}/${year}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return 'N/A';
+            try {
+                // Formato YYYY-MM-DD HH:MM:SS
+                const [datePart, timePart] = dateTimeStr.split(' ');
+                const [year, month, day] = datePart.split('-');
+                const timeStr = (timePart || "").substring(0, 5);
+                return `${day}/${month}/${year} ${timeStr}`;
+            } catch(e) {
+                return dateTimeStr;
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+
+        function escapeJS(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'")
+                      .replace(/"/g, '\\"');
+        }
+
+        function showSuccessAlert(text) {
+            const alertBox = document.getElementById("status-alert");
+            alertBox.style.display = "block";
+            alertBox.className = "alert alert-success mb-4";
+            alertBox.textContent = text;
+
+            setTimeout(() => {
+                alertBox.style.opacity = '0';
+                alertBox.style.transition = 'opacity 0.5s ease-out';
+                setTimeout(() => { alertBox.style.display = 'none'; alertBox.style.opacity = '1'; }, 500);
+            }, 5000);
+        }
+
+        function showQueryParamsAlerts() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.has("status")) {
+                const status = urlParams.get("status");
+                let msg = "";
+                if (status === "success_add") {
+                    msg = "¡Pago registrado correctamente!";
+                } else if (status === "success_edit") {
+                    msg = "¡Pago actualizado correctamente!";
+                } else if (status === "success_delete") {
+                    msg = "¡Pago eliminado correctamente!";
+                } else if (status === "error") {
+                    alert(urlParams.get("message") || "Ocurrió un error inesperado al procesar el pago.");
+                    return;
+                }
+                
+                if (msg) {
+                    showSuccessAlert(msg);
+                }
+
+                // Limpiar query params de la URL sin recargar
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState(null, '', cleanUrl);
+            }
+        }
+    </script>
+</body>
+</html>

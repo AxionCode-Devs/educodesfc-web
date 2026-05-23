@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Categoría - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Editar Categoría de Equipo";
+        window.activePage = "equipo";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 id="page-subtitle"><i class="bi bi-pencil-square me-2"></i>Editar Categoría</h2>
+                    <a href="index.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a Categorías
+                    </a>
+                </div>
+
+                <!-- Alertas de errores -->
+                <div id="validation-errors" class="alert alert-danger mb-4" role="alert" style="display: none;">
+                    <h5 class="alert-heading">Errores de Validación:</h5>
+                    <ul id="errors-list" class="mb-0"></ul>
+                </div>
+
+                <div class="card shadow-sm" id="edit-card" style="display: none;">
+                    <div class="card-body">
+                        <form id="category-edit-form" novalidate>
+                            <input type="hidden" id="categoria_id" name="id">
+
+                            <div class="mb-3">
+                                <label for="nombre_plantilla" class="form-label">Nombre de la Plantilla <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nombre_plantilla" name="nombre_plantilla" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="categoria_edad" class="form-label">Categoría de Edad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="categoria_edad" name="categoria_edad" required>
+                                <div class="form-text">Ej: Juvenil, Infantil, Primer Equipo</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="entrenador_principal_id" class="form-label">Entrenador Principal Asignado</label>
+                                <select class="form-select" id="entrenador_principal_id" name="entrenador_principal_id">
+                                    <option value="">-- Seleccionar Entrenador --</option>
+                                    <!-- Entrenadores cargados dinámicamente -->
+                                </select>
+                                <div class="form-text">Si un entrenador no aparece, ya está asignado a otra plantilla activa.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="horario_entrenamiento_habitual" class="form-label">Horario Habitual de Entrenamiento</label>
+                                <input type="text" class="form-control" id="horario_entrenamiento_habitual" name="horario_entrenamiento_habitual">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="campo_entrenamiento_asignado" class="form-label">Campo de Entrenamiento Asignado</label>
+                                <input type="text" class="form-control" id="campo_entrenamiento_asignado" name="campo_entrenamiento_asignado">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="estado_plantilla" class="form-label">Estado de la Plantilla <span class="text-danger">*</span></label>
+                                <select class="form-select" id="estado_plantilla" name="estado_plantilla" required>
+                                    <option value="Activa">Activa</option>
+                                    <option value="Inactiva">Inactiva</option>
+                                    <option value="En Formación">En Formación</option>
+                                </select>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button type="submit" class="btn btn-success"><i class="bi bi-save me-2"></i>Guardar Cambios</button>
+                                <a href="index.html" class="btn btn-secondary">Cancelar</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y envío -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Obtener ID de la categoría
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has("id")) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("ID de categoría no proporcionado.");
+                return;
+            }
+
+            const catId = parseInt(urlParams.get("id"));
+            const cat = window.MockDB.getCategory(catId);
+
+            if (!cat) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("Categoría no encontrada.");
+                return;
+            }
+
+            // Actualizar subtítulo
+            document.getElementById("page-subtitle").innerHTML = `<i class="bi bi-pencil-square me-2"></i>Editar Categoría: ${escapeHTML(cat.nombre_plantilla)}`;
+
+            // 2. Cargar entrenadores disponibles
+            const selectEntrenador = document.getElementById("entrenador_principal_id");
+            const miembros = window.MockDB.getMembers();
+            const categorias = window.MockDB.getCategories();
+
+            // Filtrar entrenadores
+            const entrenadores = miembros.filter(m => m.tipo_miembro === "Entrenador");
+            
+            // Ver qué entrenadores ya están asignados a categorías ACTIVAS (que no sea esta misma)
+            const entrenadoresAsignadosIds = categorias
+                .filter(c => c.id !== catId && c.estado_plantilla === "Activa" && c.entrenador_principal_id)
+                .map(c => parseInt(c.entrenador_principal_id));
+
+            entrenadores.forEach(entrenador => {
+                // Incluir si no está asignado a otra plantilla o si es el actual de esta plantilla
+                if (!entrenadoresAsignadosIds.includes(entrenador.id) || entrenador.id === parseInt(cat.entrenador_principal_id)) {
+                    const opt = document.createElement("option");
+                    opt.value = entrenador.id;
+                    opt.textContent = entrenador.nombre_completo;
+                    if (entrenador.id === parseInt(cat.entrenador_principal_id)) {
+                        opt.selected = true;
+                    }
+                    selectEntrenador.appendChild(opt);
+                }
+            });
+
+            // 3. Rellenar formulario
+            document.getElementById("categoria_id").value = cat.id;
+            document.getElementById("nombre_plantilla").value = cat.nombre_plantilla;
+            document.getElementById("categoria_edad").value = cat.categoria_edad || "";
+            document.getElementById("descripcion").value = cat.descripcion || "";
+            document.getElementById("horario_entrenamiento_habitual").value = cat.horario_entrenamiento_habitual || "";
+            document.getElementById("campo_entrenamiento_asignado").value = cat.campo_entrenamiento_asignado || "";
+            document.getElementById("estado_plantilla").value = cat.estado_plantilla || "Activa";
+
+            document.getElementById("edit-card").style.display = "block";
+
+            // 4. Procesar el formulario
+            document.getElementById("category-edit-form").addEventListener("submit", function(event) {
+                event.preventDefault();
+
+                const errorsList = document.getElementById("errors-list");
+                const errorsAlert = document.getElementById("validation-errors");
+                errorsList.innerHTML = "";
+                errorsAlert.style.display = "none";
+
+                // Valores
+                const nombre = document.getElementById("nombre_plantilla").value.trim();
+                const edad = document.getElementById("categoria_edad").value.trim();
+                const desc = document.getElementById("descripcion").value.trim();
+                const entrenadorId = document.getElementById("entrenador_principal_id").value;
+                const horario = document.getElementById("horario_entrenamiento_habitual").value.trim();
+                const campo = document.getElementById("campo_entrenamiento_asignado").value.trim();
+                const estado = document.getElementById("estado_plantilla").value;
+
+                // Validación simple
+                const errors = [];
+                if (!nombre) errors.push("El nombre de la categoría es requerido.");
+                if (!edad) errors.push("La categoría de edad es requerida.");
+                if (!estado) errors.push("El estado de la plantilla es requerido.");
+
+                if (errors.length > 0) {
+                    errors.forEach(err => {
+                        const li = document.createElement("li");
+                        li.textContent = err;
+                        errorsList.appendChild(li);
+                    });
+                    errorsAlert.style.display = "block";
+                    window.scrollTo(0, 0);
+                    return;
+                }
+
+                // Guardar
+                const catData = {
+                    nombre_plantilla: nombre,
+                    categoria_edad: edad,
+                    descripcion: desc,
+                    entrenador_principal_id: entrenadorId || null,
+                    horario_entrenamiento_habitual: horario,
+                    campo_entrenamiento_asignado: campo,
+                    estado_plantilla: estado
+                };
+
+                window.MockDB.updateCategory(catId, catData);
+
+                // Redirigir a listado con éxito
+                window.location.href = "index.html?status=success_edit";
+            });
+        });
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

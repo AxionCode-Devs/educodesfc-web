@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Estadísticas - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Editar Estadísticas del Jugador";
+        window.activePage = "equipo";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-pencil-square me-2"></i>Editar Estadísticas de: <span id="player-name">Jugador</span></h2>
+                    <a id="btn-back" href="#" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a Estadísticas del Jugador
+                    </a>
+                </div>
+
+                <!-- Alertas de errores -->
+                <div id="validation-errors" class="alert alert-danger mb-4" role="alert" style="display: none;">
+                    <h5 class="alert-heading">Errores de Validación:</h5>
+                    <ul id="errors-list" class="mb-0"></ul>
+                </div>
+
+                <div id="item-not-found" class="alert alert-danger" style="display: none;">
+                    Estadísticas o jugador no encontrados.
+                </div>
+
+                <div class="card shadow-sm" id="form-card" style="display: none;">
+                    <div class="card-body">
+                        <form id="stats-edit-form" novalidate>
+                            <input type="hidden" id="stat_id" name="id">
+                            <input type="hidden" id="miembro_id" name="miembro_id">
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="temporada" class="form-label">Temporada</label>
+                                    <input type="text" class="form-control" id="temporada" name="temporada" readonly>
+                                    <div class="form-text">La temporada no es editable.</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="partidos_jugados" class="form-label">Partidos Jugados <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="partidos_jugados" name="partidos_jugados" min="0" required>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="minutos_jugados" class="form-label">Minutos Jugados</label>
+                                    <input type="number" class="form-control" id="minutos_jugados" name="minutos_jugados" min="0">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="goles_anotados" class="form-label">Goles Anotados</label>
+                                    <input type="number" class="form-control" id="goles_anotados" name="goles_anotados" min="0">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="asistencias" class="form-label">Asistencias</label>
+                                    <input type="number" class="form-control" id="asistencias" name="asistencias" min="0">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="pases_intentados" class="form-label">Pases Intentados</label>
+                                    <input type="number" class="form-control" id="pases_intentados" name="pases_intentados" min="0">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="pases_completados" class="form-label">Pases Completados</label>
+                                    <input type="number" class="form-control" id="pases_completados" name="pases_completados" min="0">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="recuperaciones" class="form-label">Recuperaciones</label>
+                                    <input type="number" class="form-control" id="recuperaciones" name="recuperaciones" min="0">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="tarjetas_amarillas" class="form-label">Tarjetas Amarillas</label>
+                                    <input type="number" class="form-control" id="tarjetas_amarillas" name="tarjetas_amarillas" min="0">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="tarjetas_rojas" class="form-label">Tarjetas Rojas</label>
+                                    <input type="number" class="form-control" id="tarjetas_rojas" name="tarjetas_rojas" min="0">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="lesiones_sufridas" class="form-label">Lesiones Sufridas</label>
+                                    <input type="number" class="form-control" id="lesiones_sufridas" name="lesiones_sufridas" min="0">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="notas_rendimiento" class="form-label">Notas de Rendimiento</label>
+                                <textarea class="form-control" id="notas_rendimiento" name="notas_rendimiento" rows="4"></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-clockwise me-2"></i>Actualizar Estadísticas</button>
+                                <a id="btn-cancel" href="#" class="btn btn-secondary">Cancelar</a>
+                                <button type="button" onclick="confirmarEliminar()" class="btn btn-danger"><i class="bi bi-trash me-2"></i>Eliminar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y envío -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Obtener parámetros
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has("id") || !urlParams.has("miembro_id")) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("IDs no proporcionados.");
+                return;
+            }
+
+            const statId = parseInt(urlParams.get("id"));
+            const mId = parseInt(urlParams.get("miembro_id"));
+
+            const jugador = window.MockDB.getMember(mId);
+            const stat = window.MockDB.getStat(statId);
+
+            if (!jugador || !stat || stat.miembro_id !== mId) {
+                document.getElementById("item-not-found").style.display = "block";
+                return;
+            }
+
+            // Configurar botones de volver/cancelar
+            document.getElementById("btn-back").href = `ver_estadisticas_jugador.html?id=${jugador.id}`;
+            document.getElementById("btn-cancel").href = `ver_estadisticas_jugador.html?id=${jugador.id}`;
+
+            // Rellenar cabecera y campos
+            document.getElementById("player-name").textContent = jugador.nombre_completo;
+            document.getElementById("stat_id").value = stat.id;
+            document.getElementById("miembro_id").value = jugador.id;
+            
+            document.getElementById("temporada").value = stat.temporada;
+            document.getElementById("partidos_jugados").value = stat.partidos_jugados;
+            document.getElementById("minutos_jugados").value = stat.minutos_jugados;
+            document.getElementById("goles_anotados").value = stat.goles_anotados;
+            document.getElementById("asistencias").value = stat.asistencias;
+            document.getElementById("pases_intentados").value = stat.pases_intentados;
+            document.getElementById("pases_completados").value = stat.pases_completados;
+            document.getElementById("recuperaciones").value = stat.recuperaciones;
+            document.getElementById("tarjetas_amarillas").value = stat.tarjetas_amarillas;
+            document.getElementById("tarjetas_rojas").value = stat.tarjetas_rojas;
+            document.getElementById("lesiones_sufridas").value = stat.lesiones_sufridas;
+            document.getElementById("notas_rendimiento").value = stat.notas_rendimiento || "";
+
+            document.getElementById("form-card").style.display = "block";
+
+            // 2. Procesar el formulario
+            document.getElementById("stats-edit-form").addEventListener("submit", function(event) {
+                event.preventDefault();
+
+                const errorsList = document.getElementById("errors-list");
+                const errorsAlert = document.getElementById("validation-errors");
+                errorsList.innerHTML = "";
+                errorsAlert.style.display = "none";
+
+                // Valores
+                const partidos = parseInt(document.getElementById("partidos_jugados").value) || 0;
+                const minutos = parseInt(document.getElementById("minutos_jugados").value) || 0;
+                const goles = parseInt(document.getElementById("goles_anotados").value) || 0;
+                const asistencias = parseInt(document.getElementById("asistencias").value) || 0;
+                const pasesInt = parseInt(document.getElementById("pases_intentados").value) || 0;
+                const pasesComp = parseInt(document.getElementById("pases_completados").value) || 0;
+                const recuperaciones = parseInt(document.getElementById("recuperaciones").value) || 0;
+                const amarillas = parseInt(document.getElementById("tarjetas_amarillas").value) || 0;
+                const rojas = parseInt(document.getElementById("tarjetas_rojas").value) || 0;
+                const lesiones = parseInt(document.getElementById("lesiones_sufridas").value) || 0;
+                const notas = document.getElementById("notas_rendimiento").value.trim();
+
+                // Validación simple
+                const errors = [];
+                if (partidos < 0) errors.push("Los partidos jugados no pueden ser negativos.");
+                if (minutos < 0) errors.push("Los minutos jugados no pueden ser negativos.");
+                if (goles < 0) errors.push("Los goles anotados no pueden ser negativos.");
+                if (asistencias < 0) errors.push("Las asistencias no pueden ser negativas.");
+                if (pasesInt < 0) errors.push("Los pases intentados no pueden ser negativos.");
+                if (pasesComp < 0) errors.push("Los pases completados no pueden ser negativos.");
+                if (pasesComp > pasesInt) errors.push("Los pases completados no pueden superar a los pases intentados.");
+                if (recuperaciones < 0) errors.push("Las recuperaciones no pueden ser negativas.");
+                if (amarillas < 0) errors.push("Las tarjetas amarillas no pueden ser negativas.");
+                if (rojas < 0) errors.push("Las tarjetas rojas no pueden ser negativas.");
+                if (lesiones < 0) errors.push("Las lesiones no pueden ser negativas.");
+
+                if (errors.length > 0) {
+                    errors.forEach(err => {
+                        const li = document.createElement("li");
+                        li.textContent = err;
+                        errorsList.appendChild(li);
+                    });
+                    errorsAlert.style.display = "block";
+                    window.scrollTo(0, 0);
+                    return;
+                }
+
+                // Guardar
+                const statData = {
+                    temporada: stat.temporada, // Mantiene la misma
+                    partidos_jugados: partidos,
+                    minutos_jugados: minutos,
+                    goles_anotados: goles,
+                    asistencias: asistencias,
+                    pases_intentados: pasesInt,
+                    pases_completados: pasesComp,
+                    recuperaciones: recuperaciones,
+                    tarjetas_amarillas: amarillas,
+                    tarjetas_rojas: rojas,
+                    lesiones_sufridas: lesiones,
+                    notas_rendimiento: notas
+                };
+
+                window.MockDB.updateStat(statId, statData);
+
+                // Redirigir con éxito
+                window.location.href = `ver_estadisticas_jugador.html?id=${mId}&status=success_edit`;
+            });
+        });
+
+        function confirmarEliminar() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const statId = parseInt(urlParams.get("id"));
+            const mId = parseInt(urlParams.get("miembro_id"));
+            const temporada = document.getElementById("temporada").value;
+
+            if (confirm(`¿Estás seguro de que deseas eliminar las estadísticas de la temporada "${temporada}"? Esta acción es irreversible.`)) {
+                const success = window.MockDB.deleteStat(statId);
+                if (success) {
+                    window.location.href = `ver_estadisticas_jugador.html?id=${mId}&status=success_delete`;
+                } else {
+                    alert("Error al eliminar las estadísticas.");
+                }
+            }
+        }
+    </script>
+</body>
+</html>

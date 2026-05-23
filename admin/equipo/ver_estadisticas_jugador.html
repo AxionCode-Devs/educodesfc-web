@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estadísticas del Jugador - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Estadísticas del Jugador";
+        window.activePage = "equipo";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-person-fill me-2"></i>Estadísticas de <span id="player-title-name">Jugador</span></h2>
+                    <a href="index.html" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a Equipo
+                    </a>
+                </div>
+
+                <!-- Mensaje de Alerta de Estado -->
+                <div id="status-alert" class="alert alert-success mb-4" role="alert" style="display: none;"></div>
+
+                <div id="player-not-found" class="alert alert-danger" style="display: none;">
+                    Jugador no encontrado o no es un miembro activo.
+                </div>
+
+                <div id="stats-container" style="display: none;">
+                    <!-- Tarjeta Info Jugador -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                            <h4 class="mb-0">Información del Jugador</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Nombre Completo:</strong> <span class="fw-bold" id="p-name"></span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Fecha de Nacimiento:</strong> <span class="fw-bold" id="p-birth"></span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Dorsal:</strong> <span class="badge bg-info text-dark fs-6" id="p-dorsal">N/A</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Posición:</strong> <span class="fw-bold" id="p-pos">N/A</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Categoría (Plantilla):</strong> <span id="p-category">Sin asignar</span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Email:</strong> <span id="p-email"></span></p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-0"><strong>Teléfono:</strong> <span id="p-phone"></span></p>
+                                </div> 
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mb-4">
+                        <a id="btn-add-stat" href="#" class="btn btn-success">
+                            <i class="bi bi-plus-circle me-2"></i> Añadir Nueva Estadística
+                        </a>
+                    </div>
+
+                    <!-- Resumen de Última Temporada (Opcional) -->
+                    <div class="card shadow-sm mb-4" id="last-season-card" style="display: none;">
+                        <div class="card-header bg-success text-white d-flex align-items-center">
+                            <i class="bi bi-clipboard-data-fill me-2 fs-5"></i>
+                            <h4 class="mb-0">Resumen de Última Temporada (<span id="last-season-title">N/A</span>)</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-3 mb-3">
+                                    <div class="statistic-box p-3 border rounded">
+                                        <i class="bi bi-controller fs-3 text-primary"></i>
+                                        <h5 class="mt-2 mb-0">Partidos</h5>
+                                        <p class="fs-4 fw-bold text-primary mb-0" id="widget-partidos">0</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="statistic-box p-3 border rounded">
+                                        <i class="fa-solid fa-futbol fs-3 text-success"></i>
+                                        <h5 class="mt-2 mb-0">Goles</h5>
+                                        <p class="fs-4 fw-bold text-success mb-0" id="widget-goles">0</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="statistic-box p-3 border rounded">
+                                        <i class="bi bi-share-fill fs-3 text-info"></i>
+                                        <h5 class="mt-2 mb-0">Asistencias</h5>
+                                        <p class="fs-4 fw-bold text-info mb-0" id="widget-asistencias">0</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="statistic-box p-3 border rounded">
+                                        <i class="bi bi-bullseye fs-3 text-warning"></i>
+                                        <h5 class="mt-2 mb-0">% Pases Completados</h5>
+                                        <p class="fs-4 fw-bold text-warning mb-0" id="widget-pases">0%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas Detalladas por Temporada -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-secondary text-white d-flex align-items-center">
+                            <i class="bi bi-graph-up-arrow me-2 fs-5"></i>
+                            <h4 class="mb-0">Estadísticas Detalladas por Temporada</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="accordion" id="accordionStats" style="display: none;">
+                                <!-- Accordion Items inyectados dinámicamente -->
+                            </div>
+                            <div class="text-center py-5 empty-state" id="empty-stats-msg" style="display: none;">
+                                <i class="bi bi-emoji-frown display-4 text-muted mb-3"></i>
+                                <p class="lead mb-1">No hay estadísticas registradas para este jugador en ninguna temporada.</p>
+                                <p class="text-muted">Puedes añadir nuevas estadísticas para comenzar.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Mostrar alertas basadas en Query Params
+            showQueryParamsAlerts();
+
+            // 2. Obtener ID del miembro
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has("id")) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("ID de jugador no proporcionado.");
+                return;
+            }
+
+            const mId = parseInt(urlParams.get("id"));
+            const jugador = window.MockDB.getMember(mId);
+
+            if (!jugador || jugador.tipo_miembro !== "Jugador") {
+                document.getElementById("player-not-found").style.display = "block";
+                return;
+            }
+
+            // Set link to add stats
+            document.getElementById("btn-add-stat").href = `crear_estadistica_jugador.html?id=${jugador.id}`;
+
+            // Rellenar información jugador
+            document.getElementById("player-title-name").textContent = jugador.nombre_completo;
+            document.getElementById("p-name").textContent = jugador.nombre_completo;
+            document.getElementById("p-birth").textContent = jugador.fecha_nacimiento ? formatDate(jugador.fecha_nacimiento) : "N/A";
+            document.getElementById("p-dorsal").textContent = jugador.dorsal || "N/A";
+            document.getElementById("p-pos").textContent = jugador.posicion || "N/A";
+            
+            if (jugador.plantilla_id) {
+                document.getElementById("p-category").innerHTML = `
+                    <a href="ver_categoria.html?id=${jugador.plantilla_id}" class="link-primary text-decoration-none">
+                        <span class="badge bg-secondary">${escapeHTML(jugador.nombre_plantilla)}</span>
+                    </a>
+                `;
+            } else {
+                document.getElementById("p-category").textContent = "Sin plantilla asignada";
+            }
+
+            document.getElementById("p-email").innerHTML = `<a href="mailto:${escapeHTML(jugador.email)}">${escapeHTML(jugador.email)}</a>`;
+            document.getElementById("p-phone").innerHTML = `<a href="tel:${escapeHTML(jugador.telefono)}">${escapeHTML(jugador.telefono)}</a>`;
+
+            // 3. Obtener estadísticas del jugador
+            const statsList = window.MockDB.getStatsByPlayer(mId);
+
+            if (statsList.length > 0) {
+                // Ordenar por temporada DESC
+                statsList.sort((a, b) => b.temporada.localeCompare(a.temporada));
+
+                // Resumen de la última temporada (la primera del array)
+                const last = statsList[0];
+                document.getElementById("last-season-card").style.display = "block";
+                document.getElementById("last-season-title").textContent = last.temporada;
+                document.getElementById("widget-partidos").textContent = last.partidos_jugados;
+                document.getElementById("widget-goles").textContent = last.goles_anotados;
+                document.getElementById("widget-asistencias").textContent = last.asistencias;
+                
+                const pct = last.pases_intentados > 0 ? Math.round((last.pases_completados / last.pases_intentados) * 100) : 0;
+                document.getElementById("widget-pases").textContent = `${pct}%`;
+
+                // Renderizar accordion
+                const accordion = document.getElementById("accordionStats");
+                accordion.innerHTML = "";
+                accordion.style.display = "block";
+
+                statsList.forEach((stat, index) => {
+                    const pctPases = stat.pases_intentados > 0 ? Math.round((stat.pases_completados / stat.pases_intentados) * 100) : 0;
+                    const item = document.createElement("div");
+                    item.className = "accordion-item";
+                    
+                    item.innerHTML = `
+                        <h2 class="accordion-header" id="heading${index}">
+                            <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="${index === 0 ? 'true' : 'false'}" aria-controls="collapse${index}">
+                                <span class="fw-bold">Temporada: ${escapeHTML(stat.temporada)}</span> 
+                                <span class="badge bg-primary ms-3"><i class="bi bi-soccer"></i> Goles: ${stat.goles_anotados}</span>
+                                <span class="badge bg-info ms-2"><i class="bi bi-share-fill"></i> Asistencias: ${stat.asistencias}</span>
+                                <span class="badge bg-dark ms-2"><i class="bi bi-controller"></i> Partidos: ${stat.partidos_jugados}</span>
+                            </button>
+                        </h2>
+                        <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" aria-labelledby="heading${index}" data-bs-parent="#accordionStats">
+                            <div class="accordion-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-controller me-2 text-primary"></i><strong>Partidos Jugados:</strong> <span class="fw-bold text-primary">${stat.partidos_jugados}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-clock-fill me-2 text-info"></i><strong>Minutos Jugados:</strong> <span class="fw-bold text-info">${stat.minutos_jugados}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="fa-solid fa-futbol me-2 text-success"></i><strong>Goles Anotados:</strong> <span class="fw-bold text-success">${stat.goles_anotados}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-share-fill me-2 text-info"></i><strong>Asistencias:</strong> <span class="fw-bold text-info">${stat.asistencias}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-arrow-right-short me-2"></i><strong>Pases Intentados:</strong> <span class="fw-bold">${stat.pases_intentados}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-check-lg me-2"></i><strong>Pases Completados:</strong> <span class="fw-bold">${stat.pases_completados}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-percent me-2 text-warning"></i><strong>% Pases Completados:</strong> <span class="fw-bold text-warning">${pctPases}%</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-shield-fill me-2 text-secondary"></i><strong>Recuperaciones:</strong> <span class="fw-bold">${stat.recuperaciones}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-card-checklist me-2 text-warning"></i><strong>Tarjetas Amarillas:</strong> <span class="fw-bold text-warning">${stat.tarjetas_amarillas}</span></p></div>
+                                    <div class="col-md-6"><p class="mb-1"><i class="bi bi-x-circle-fill me-2 text-danger"></i><strong>Tarjetas Rojas:</strong> <span class="fw-bold text-danger">${stat.tarjetas_rojas}</span></p></div>
+                                    <div class="col-md-12"><p class="mb-1"><i class="bi bi-bandaid-fill me-2 text-danger"></i><strong>Lesiones Sufridas:</strong> <span class="fw-bold">${stat.lesiones_sufridas}</span></p></div>
+                                    <div class="col-md-12"><p class="mb-1"><i class="bi bi-pencil-square me-2"></i><strong>Notas de Rendimiento:</strong> <span class="text-muted" style="white-space: pre-wrap;">${escapeHTML(stat.notas_rendimiento) || 'Sin notas'}</span></p></div>
+                                    <div class="col-md-12 text-end text-muted small mt-3">Última Actualización: <i class="bi bi-calendar-check me-1"></i>${stat.fecha_ultima_actualizacion}</div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-4">
+                                    <a href="editar_estadistica_jugador.html?id=${stat.id}&miembro_id=${jugador.id}" class="btn btn-sm btn-info text-white">
+                                        <i class="bi bi-pencil-square me-1"></i> Editar
+                                    </a>
+                                    <button onclick="eliminarEstadistica(${stat.id}, ${jugador.id}, '${escapeJS(stat.temporada)}')" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash me-1"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    accordion.appendChild(item);
+                });
+            } else {
+                document.getElementById("empty-stats-msg").style.display = "block";
+            }
+
+            document.getElementById("stats-container").style.display = "block";
+        });
+
+        function eliminarEstadistica(statId, jugadorId, temporada) {
+            if (confirm(`¿Estás seguro de que quieres eliminar las estadísticas de la temporada ${temporada} para este jugador? Esta acción no se puede deshacer.`)) {
+                const success = window.MockDB.deleteStat(statId);
+                if (success) {
+                    window.location.href = `ver_estadisticas_jugador.html?id=${jugadorId}&status=success_delete`;
+                } else {
+                    window.location.href = `ver_estadisticas_jugador.html?id=${jugadorId}&status=error&message=` + encodeURIComponent("Error al eliminar las estadísticas.");
+                }
+            }
+        }
+
+        function formatDate(dateStr) {
+            try {
+                const [year, month, day] = dateStr.split('-');
+                return `${day}/${month}/${year}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+
+        function escapeJS(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'")
+                      .replace(/"/g, '\\"');
+        }
+
+        function showQueryParamsAlerts() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const alertBox = document.getElementById("status-alert");
+            
+            if (urlParams.has("status")) {
+                const status = urlParams.get("status");
+                alertBox.style.display = "block";
+                alertBox.className = "alert alert-success mb-4";
+                
+                if (status === "success_add") {
+                    alertBox.textContent = "¡Estadísticas de temporada agregadas exitosamente!";
+                } else if (status === "success_edit") {
+                    alertBox.textContent = "¡Estadísticas de temporada actualizadas exitosamente!";
+                } else if (status === "success_delete") {
+                    alertBox.textContent = "¡Estadísticas de temporada eliminadas exitosamente!";
+                } else if (status === "error") {
+                    alertBox.className = "alert alert-danger mb-4";
+                    alertBox.textContent = urlParams.get("message") || "Ocurrió un error inesperado al procesar las estadísticas.";
+                }
+
+                // Limpiar query params de la URL sin recargar
+                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?id=" + urlParams.get("id");
+                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+
+                setTimeout(() => {
+                    alertBox.style.opacity = '0';
+                    alertBox.style.transition = 'opacity 0.5s ease-out';
+                    setTimeout(() => { alertBox.style.display = 'none'; alertBox.style.opacity = '1'; }, 500);
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

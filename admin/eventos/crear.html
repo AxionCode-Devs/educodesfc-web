@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crear Nuevo Evento - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Crear Nuevo Evento";
+        window.activePage = "eventos";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Crear Nuevo Evento</h2>
+                    <a href="index.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a la Lista
+                    </a>
+                </div>
+
+                <!-- Mensaje de error local si surge alguno -->
+                <div id="error-alert" class="alert alert-danger mb-4" role="alert" style="display: none;"></div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <form id="crear-evento-form" class="form-modern">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="nombre" class="form-label">Nombre del Evento:</label>
+                                    <input type="text" id="nombre" class="form-control" placeholder="Ej. Partido de Liga vs Real Madrid B" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="tipo_evento" class="form-label">Tipo de Evento:</label>
+                                    <select id="tipo_evento" class="form-select" required>
+                                        <option value="">Selecciona un tipo</option>
+                                        <option value="Partido">Partido</option>
+                                        <option value="Entrenamiento">Entrenamiento</option>
+                                        <option value="Reunión">Reunión</option>
+                                        <option value="Torneo">Torneo</option>
+                                        <option value="Actividad Social">Actividad Social</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción:</label>
+                                <textarea id="descripcion" class="form-control" rows="3" placeholder="Información adicional sobre el evento..."></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="fecha_inicio" class="form-label">Fecha de Inicio:</label>
+                                    <input type="date" id="fecha_inicio" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="fecha_fin" class="form-label">Fecha de Fin (Opcional):</label>
+                                    <input type="date" id="fecha_fin" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="hora_inicio" class="form-label">Hora de Inicio (Opcional):</label>
+                                    <input type="time" id="hora_inicio" class="form-control">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="hora_fin" class="form-label">Hora de Fin (Opcional):</label>
+                                    <input type="time" id="hora_fin" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="categoria" class="form-label">Categoría (Opcional):</label>
+                                    <select id="categoria" class="form-select">
+                                        <option value="">N/A o Selecciona una categoría</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="estado" class="form-label">Estado del Evento:</label>
+                                    <select id="estado" class="form-select" required>
+                                        <option value="">Selecciona un estado</option>
+                                        <option value="Programado" selected>Programado</option>
+                                        <option value="En Curso">En Curso</option>
+                                        <option value="Finalizado">Finalizado</option>
+                                        <option value="Cancelado">Cancelado</option>
+                                        <option value="Pospuesto">Pospuesto</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="lugar" class="form-label">Lugar del Evento:</label>
+                                <select id="lugar" class="form-select" required>
+                                    <option value="">Selecciona un lugar</option>
+                                    <option value="Cancha Principal del Club">Cancha Principal del Club</option>
+                                    <option value="Estadio Nacional Jorge 'Mágico' González">Estadio Nacional Jorge 'Mágico' González</option>
+                                    <option value="Gimnasio Nacional Adolfo Pineda">Gimnasio Nacional Adolfo Pineda</option>
+                                    <option value="Otro Lugar Externo (Especificar en descripción)">Otro Lugar Externo (Especificar en descripción)</option>
+                                </select>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="index.html" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-save me-1"></i>Guardar Evento
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y control de envío -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Validar que el usuario tenga rol adecuado para crear
+            const user = window.MockDB.getCurrentUser();
+            if (user && user.rol === "cajero") {
+                // El cajero solo gestiona pagos
+                document.getElementById("error-alert").textContent = "No tienes permiso para crear eventos. Redirigiendo...";
+                document.getElementById("error-alert").style.display = "block";
+                setTimeout(() => {
+                    window.location.href = "index.html";
+                }, 2000);
+                return;
+            }
+
+            // 2. Cargar las categorías/plantillas de forma dinámica
+            cargarCategorias();
+
+            // 3. Controlar el envío del formulario
+            const form = document.getElementById("crear-evento-form");
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+
+                const nombre = document.getElementById("nombre").value.trim();
+                const tipo_evento = document.getElementById("tipo_evento").value;
+                const descripcion = document.getElementById("descripcion").value.trim();
+                const fecha_inicio = document.getElementById("fecha_inicio").value;
+                const fecha_fin = document.getElementById("fecha_fin").value || fecha_inicio;
+                
+                // Formatear hora de inicio y fin para añadir segundos si no los tienen (compatible con la BD original HH:MM:SS)
+                let hora_inicio = document.getElementById("hora_inicio").value;
+                if (hora_inicio) {
+                    hora_inicio += ":00";
+                }
+                let hora_fin = document.getElementById("hora_fin").value;
+                if (hora_fin) {
+                    hora_fin += ":00";
+                }
+
+                const categoria = document.getElementById("categoria").value;
+                const estado = document.getElementById("estado").value;
+                const lugar = document.getElementById("lugar").value;
+
+                try {
+                    const newEvent = window.MockDB.addEvent({
+                        nombre,
+                        tipo_evento,
+                        descripcion,
+                        fecha_inicio,
+                        fecha_fin,
+                        hora_inicio,
+                        hora_fin,
+                        categoria,
+                        lugar,
+                        estado
+                    });
+
+                    if (newEvent) {
+                        window.location.href = "index.html?status=success_add";
+                    } else {
+                        throw new Error("No se pudo agregar el evento.");
+                    }
+                } catch (error) {
+                    const errorBox = document.getElementById("error-alert");
+                    errorBox.textContent = "Error al crear el evento: " + error.message;
+                    errorBox.style.display = "block";
+                }
+            });
+        });
+
+        function cargarCategorias() {
+            const selectCat = document.getElementById("categoria");
+            const categorias = window.MockDB.getCategories();
+            
+            // Obtener nombres de plantilla únicos
+            const nombresUnicos = [...new Set(categorias.map(c => c.nombre_plantilla))].sort();
+
+            nombresUnicos.forEach(nombre => {
+                const opt = document.createElement("option");
+                opt.value = nombre;
+                opt.textContent = nombre;
+                selectCat.appendChild(opt);
+            });
+        }
+    </script>
+</body>
+</html>

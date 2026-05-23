@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crear Nueva Categoría - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Crear Nueva Categoría de Equipo";
+        window.activePage = "equipo";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="bi bi-folder-plus me-2"></i>Crear Nueva Categoría</h2>
+                    <a href="index.html" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a Categorías
+                    </a>
+                </div>
+
+                <!-- Alertas de errores -->
+                <div id="validation-errors" class="alert alert-danger mb-4" role="alert" style="display: none;">
+                    <h5 class="alert-heading">Errores de Validación:</h5>
+                    <ul id="errors-list" class="mb-0"></ul>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Formulario para Nueva Categoría</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="category-form" novalidate>
+                            <div class="mb-3">
+                                <label for="nombre_plantilla" class="form-label">Nombre de la Categoría <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="nombre_plantilla" name="nombre_plantilla" required placeholder="Ej: Primer Equipo (Educodes F.C. Senior)">
+                            </div>
+                            <div class="mb-3">
+                                <label for="categoria_edad" class="form-label">Categoría de Edad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="categoria_edad" name="categoria_edad" required placeholder="Ej: Senior, Juvenil, Cadete, Alevín">
+                            </div>
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción (Opcional)</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="3" placeholder="Descripción detallada de la categoría..."></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="horario_entrenamiento_habitual" class="form-label">Horario de Entrenamiento (Opcional)</label>
+                                <input type="text" class="form-control" id="horario_entrenamiento_habitual" name="horario_entrenamiento_habitual" placeholder="Ej: Lunes y Miércoles 19:00 - 21:00">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="campo_entrenamiento_asignado" class="form-label">Campo de Entrenamiento Asignado (Opcional)</label>
+                                <input type="text" class="form-control" id="campo_entrenamiento_asignado" name="campo_entrenamiento_asignado" placeholder="Ej: Campo Principal, Campo 2">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="estado_plantilla" class="form-label">Estado de la Plantilla <span class="text-danger">*</span></label>
+                                <select class="form-select" id="estado_plantilla" name="estado_plantilla" required>
+                                    <option value="">Selecciona un estado</option>
+                                    <option value="Activa" selected>Activa</option>
+                                    <option value="Inactiva">Inactiva</option>
+                                    <option value="En Formación">En Formación</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-plus-circle me-2"></i>Crear Categoría
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y envío -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            document.getElementById("category-form").addEventListener("submit", function(event) {
+                event.preventDefault();
+
+                const errorsList = document.getElementById("errors-list");
+                const errorsAlert = document.getElementById("validation-errors");
+                errorsList.innerHTML = "";
+                errorsAlert.style.display = "none";
+
+                // Valores
+                const nombre = document.getElementById("nombre_plantilla").value.trim();
+                const edad = document.getElementById("categoria_edad").value.trim();
+                const desc = document.getElementById("descripcion").value.trim();
+                const horario = document.getElementById("horario_entrenamiento_habitual").value.trim();
+                const campo = document.getElementById("campo_entrenamiento_asignado").value.trim();
+                const estado = document.getElementById("estado_plantilla").value;
+
+                // Validación simple
+                const errors = [];
+                if (!nombre) errors.push("El nombre de la categoría es requerido.");
+                if (!edad) errors.push("La categoría de edad es requerida.");
+                if (!estado) errors.push("El estado de la plantilla es requerido.");
+
+                if (errors.length > 0) {
+                    errors.forEach(err => {
+                        const li = document.createElement("li");
+                        li.textContent = err;
+                        errorsList.appendChild(li);
+                    });
+                    errorsAlert.style.display = "block";
+                    window.scrollTo(0, 0);
+                    return;
+                }
+
+                // Guardar
+                const catData = {
+                    nombre_plantilla: nombre,
+                    categoria_edad: edad,
+                    descripcion: desc,
+                    horario_entrenamiento_habitual: horario,
+                    campo_entrenamiento_asignado: campo,
+                    estado_plantilla: estado
+                };
+
+                window.MockDB.addCategory(catData);
+
+                // Redirigir a listado con éxito
+                window.location.href = "index.html?status=success_add";
+            });
+        });
+    </script>
+</body>
+</html>

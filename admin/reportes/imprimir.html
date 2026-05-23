@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Imprimir Reporte - Club Deportivo</title>
+    <style id="page-orientation-style">
+        @page { size: A4 portrait; margin: 15mm; }
+    </style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt; 
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+        }
+        
+        .actions-bar {
+            padding: 10px 20px;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid transparent;
+            padding: .375rem .75rem;
+            font-size: 11px;
+            line-height: 1.5;
+            border-radius: .25rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            color: #fff;
+            background-color: #00C2FF;
+            border-color: #00C2FF;
+        }
+        
+        .btn-secondary {
+            color: #333;
+            background-color: #e0e0e0;
+            border-color: #ccc;
+        }
+
+        .report-container {
+            padding: 20px;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 15px; 
+            padding-bottom: 10px;
+            border-bottom: 2px solid #00C2FF; 
+        }
+
+        .header-logo {
+            float: left;
+            width: 70px;
+            height: auto;
+            margin-right: 15px;
+        }
+
+        .header-section h1 {
+            margin: 0;
+            font-size: 18pt; 
+            color: #333;
+        }
+
+        .header-section p {
+            margin: 5px 0 0 0;
+            font-size: 9pt; 
+            color: #666;
+        }
+
+        .report-subtitle {
+            text-align: center;
+            color: #333;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            font-size: 14pt;
+            font-weight: bold;
+        }
+
+        .filters-info {
+            margin-bottom: 15px; 
+            padding: 8px 12px; 
+            background-color: #f0f8ff; 
+            border: 1px solid #e0f2ff; 
+            font-size: 8.5pt;
+            border-left: 4px solid #00C2FF; 
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px; 
+            font-size: 8pt; 
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px; 
+            text-align: left;
+            vertical-align: middle; 
+        }
+
+        th {
+            background-color: #00C2FF; 
+            color: white; 
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap; 
+        }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 8pt;
+            color: #888;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        @media print {
+            .actions-bar {
+                display: none;
+            }
+            .report-container {
+                padding: 0;
+            }
+        }
+    </style>
+    <script src="../../js/mock-db.js"></script>
+    <script>
+        // Si no hay sesión o el rol no calza con el tipo de reporte, rebotado al index
+        const user = window.MockDB ? window.MockDB.getCurrentUser() : null;
+        if (!user) {
+            document.documentElement.style.display = "none";
+            window.location.href = "../../login.html";
+        } else {
+            const reportData = localStorage.getItem("proyecto_clubdeportivo_print_report");
+            if (reportData) {
+                try {
+                    const report = JSON.parse(reportData);
+                    const rol = user.rol;
+                    let isForbidden = false;
+                    
+                    if (rol === "cajero") {
+                        // Cajero no tiene acceso a reportes deportivos/eventos
+                        if (report.type === "eventos" || report.type === "plantillas" || report.type === "jugadores") {
+                            isForbidden = true;
+                        }
+                    } else if (rol === "entrenador") {
+                        // Entrenador no tiene acceso a reportes de administración/pagos
+                        if (report.type === "miembros" || report.type === "pagos") {
+                            isForbidden = true;
+                        }
+                    }
+                    
+                    if (isForbidden) {
+                        document.documentElement.style.display = "none";
+                        window.location.href = "../../index.html?error=unauthorized";
+                    }
+                } catch (e) {
+                    // Si se rompe el JSON, no pasa nada
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- Barra de acciones (sólo visible en vista previa del navegador) -->
+    <div class="actions-bar">
+        <button onclick="window.close()" class="btn btn-secondary">&larr; Cerrar Pestaña</button>
+        <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer"></i> Imprimir Reporte</button>
+    </div>
+
+    <div class="report-container">
+        <div class="header-section">
+            <img src="../../images/educodesfc.png" class="header-logo" alt="Educodes FC" onerror="this.style.display='none';">
+            <h1>Club Deportivo Educodes FC</h1>
+            <p id="gen-date">Fecha de Generación: 21/05/2026</p>
+            <div style="clear: both;"></div>
+        </div>
+
+        <div class="report-subtitle" id="report-title">Reporte de Miembros</div>
+        
+        <div class="filters-info">
+            <strong>Filtros aplicados:</strong> <span id="applied-filters">Ninguno (Todos los miembros)</span>
+        </div>
+
+        <table>
+            <thead id="report-thead">
+                <!-- Cabeceras inyectadas -->
+            </thead>
+            <tbody id="report-tbody">
+                <!-- Filas inyectadas -->
+            </tbody>
+        </table>
+    </div>
+
+    <footer>
+        Generado automáticamente por el Sistema de Gestión de Educodes FC &copy; <span id="current-year">2026</span>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // 1. Cargar datos desde localStorage
+            const serializedReport = localStorage.getItem("proyecto_clubdeportivo_print_report");
+            
+            if (!serializedReport) {
+                document.body.innerHTML = `
+                    <div style="text-align:center; padding: 50px; color: red; font-family: sans-serif;">
+                        <h3>Error: No se encontraron datos para generar el reporte imprimible.</h3>
+                        <p>Por favor, regrese al panel de reportes y vuelva a hacer clic en "Imprimir".</p>
+                        <button onclick="window.close()" class="btn btn-secondary">Cerrar Ventana</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const report = JSON.parse(serializedReport);
+
+            // 2. Establecer orientación de la página
+            const orientStyle = document.getElementById("page-orientation-style");
+            orientStyle.innerHTML = `@page { size: A4 ${report.orientation}; margin: 15mm; }`;
+
+            // 3. Renderizar campos de texto
+            document.getElementById("report-title").textContent = report.title;
+            document.title = `${report.title} - Educodes FC`;
+            document.getElementById("gen-date").textContent = "Fecha de Generación: " + report.date;
+            document.getElementById("applied-filters").textContent = report.filters || "Ninguno (Todos los registros)";
+            document.getElementById("current-year").textContent = new Date().getFullYear();
+
+            // 4. Inyectar cabeceras de la tabla
+            const thead = document.getElementById("report-thead");
+            thead.innerHTML = `<tr>${report.headers.map(h => `<th>${escapeHTML(h)}</th>`).join('')}</tr>`;
+
+            // 5. Inyectar filas
+            const tbody = document.getElementById("report-tbody");
+            tbody.innerHTML = "";
+
+            report.rows.forEach(row => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = row.map((val, idx) => {
+                    let alignClass = "";
+                    if (idx === 0 || val === 'N/A' || String(val).startsWith('$')) {
+                        alignClass = "text-center";
+                    }
+                    return `<td class="${alignClass}">${escapeHTML(String(val))}</td>`;
+                }).join('');
+                tbody.appendChild(tr);
+            });
+
+            // 6. Lanzar impresión automática
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        });
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

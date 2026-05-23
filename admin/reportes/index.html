@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generar Reportes - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Generar Reportes";
+        window.activePage = "reportes";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Generación de Reportes del Club</h2>
+                    <a href="../../index.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver al Panel Principal
+                    </a>
+                </div>
+
+                <div class="row">
+                    <!-- Columna de Configuración de Filtros -->
+                    <div class="col-lg-4 mb-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3"><i class="bi bi-sliders me-2"></i>Filtros del Reporte</h5>
+                                <form id="reporteForm" novalidate>
+                                    <div class="mb-3">
+                                        <label for="tipo_reporte" class="form-label fw-bold">Tipo de Reporte:</label>
+                                        <select id="tipo_reporte" class="form-select border-primary" required>
+                                            <option value="">Selecciona un tipo</option>
+                                            <option value="miembros">Reporte de Miembros</option>
+                                            <option value="pagos">Reporte de Pagos</option>
+                                            <option value="eventos">Reporte de Eventos</option>
+                                            <option value="plantillas">Reporte de Categorías (Plantillas)</option>
+                                            <option value="jugadores">Reporte de Jugadores (Estadísticas)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Filtros para Miembros -->
+                                    <div id="filtros_miembros" class="filter-group mb-3" style="display:none;">
+                                        <h6 class="border-bottom pb-2 mb-3 text-secondary">Filtros de Miembros</h6>
+                                        
+                                        <div class="mb-2">
+                                            <label for="tipo_miembro" class="form-label">Tipo de Miembro:</label>
+                                            <select id="tipo_miembro" class="form-select">
+                                                <option value="">Todos los tipos</option>
+                                                <option value="Jugador">Jugador</option>
+                                                <option value="Entrenador">Entrenador</option>
+                                                <option value="Directivo">Directivo</option>
+                                                <option value="Personal de Apoyo">Personal de Apoyo</option>
+                                                <option value="Socio/Aficionado">Socio/Aficionado</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="estado_miembro" class="form-label">Estado:</label>
+                                            <select id="estado_miembro" class="form-select">
+                                                <option value="">Todos los estados</option>
+                                                <option value="Activo">Activo</option>
+                                                <option value="Inactivo">Inactivo</option>
+                                                <option value="Lesionado">Lesionado</option>
+                                                <option value="Suspendido">Suspendido</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="fecha_ingreso_desde" class="form-label">Fecha Ingreso Desde:</label>
+                                            <input type="date" id="fecha_ingreso_desde" class="form-control">
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="fecha_ingreso_hasta" class="form-label">Fecha Ingreso Hasta:</label>
+                                            <input type="date" id="fecha_ingreso_hasta" class="form-control">
+                                        </div>
+                                    </div>
+
+                                    <!-- Filtros para Pagos -->
+                                    <div id="filtros_pagos" class="filter-group mb-3" style="display:none;">
+                                        <h6 class="border-bottom pb-2 mb-3 text-secondary">Filtros de Pagos</h6>
+
+                                        <div class="mb-2">
+                                            <label for="miembro_id_pago" class="form-label">Miembro:</label>
+                                            <select id="miembro_id_pago" class="form-select">
+                                                <option value="">Todos los miembros</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="concepto_pago" class="form-label">Concepto:</label>
+                                            <select id="concepto_pago" class="form-select">
+                                                <option value="">Todos los conceptos</option>
+                                                <option value="Cuota Mensual">Cuota Mensual</option>
+                                                <option value="Inscripción Torneo">Inscripción Torneo</option>
+                                                <option value="Uniformes/Equipamiento">Uniformes/Equipamiento</option>
+                                                <option value="Actividad Especial">Actividad Especial</option>
+                                                <option value="Sanción/Multa">Sanción/Multa</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="estado_pago" class="form-label">Estado:</label>
+                                            <select id="estado_pago" class="form-select">
+                                                <option value="">Todos los estados</option>
+                                                <option value="Completado">Completado</option>
+                                                <option value="Pendiente">Pendiente</option>
+                                                <option value="Atrasado">Atrasado</option>
+                                                <option value="Anulado">Anulado</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="metodo_pago" class="form-label">Método:</label>
+                                            <select id="metodo_pago" class="form-select">
+                                                <option value="">Todos los métodos</option>
+                                                <option value="Efectivo">Efectivo</option>
+                                                <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                                                <option value="Tarjeta de Crédito/Débito">Tarjeta de Crédito/Débito</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="fecha_pago_desde" class="form-label">Fecha Pago Desde:</label>
+                                            <input type="date" id="fecha_pago_desde" class="form-control">
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="fecha_pago_hasta" class="form-label">Fecha Pago Hasta:</label>
+                                            <input type="date" id="fecha_pago_hasta" class="form-control">
+                                        </div>
+                                    </div>
+
+                                    <!-- Filtros para Eventos -->
+                                    <div id="filtros_eventos" class="filter-group mb-3" style="display:none;">
+                                        <h6 class="border-bottom pb-2 mb-3 text-secondary">Filtros de Eventos</h6>
+
+                                        <div class="mb-2">
+                                            <label for="estado_evento" class="form-label">Estado:</label>
+                                            <select id="estado_evento" class="form-select">
+                                                <option value="">Todos los estados</option>
+                                                <option value="Programado">Programado</option>
+                                                <option value="En Curso">En Curso</option>
+                                                <option value="Finalizado">Finalizado</option>
+                                                <option value="Cancelado">Cancelado</option>
+                                                <option value="Pospuesto">Pospuesto</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="fecha_evento_desde" class="form-label">Fecha Desde:</label>
+                                            <input type="date" id="fecha_evento_desde" class="form-control">
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="fecha_evento_hasta" class="form-label">Fecha Hasta:</label>
+                                            <input type="date" id="fecha_evento_hasta" class="form-control">
+                                        </div>
+                                    </div>
+
+                                    <!-- Filtros para Plantillas -->
+                                    <div id="filtros_plantillas" class="filter-group mb-3" style="display:none;">
+                                        <h6 class="border-bottom pb-2 mb-3 text-secondary">Filtros de Categorías</h6>
+
+                                        <div class="mb-2">
+                                            <label for="categoria_edad" class="form-label">Categoría Edad:</label>
+                                            <select id="categoria_edad" class="form-select">
+                                                <option value="">Todas</option>
+                                                <option value="Senior">Senior</option>
+                                                <option value="Juvenil">Juvenil</option>
+                                                <option value="Cadete">Cadete</option>
+                                                <option value="Infantil">Infantil</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="estado_plantilla" class="form-label">Estado:</label>
+                                            <select id="estado_plantilla" class="form-select">
+                                                <option value="">Todos los estados</option>
+                                                <option value="Activa">Activa</option>
+                                                <option value="Inactiva">Inactiva</option>
+                                                <option value="En Formación">En Formación</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Filtros para Jugadores/Estadísticas -->
+                                    <div id="filtros_jugadores" class="filter-group mb-3" style="display:none;">
+                                        <h6 class="border-bottom pb-2 mb-3 text-secondary">Filtros de Jugadores (Estadísticas)</h6>
+
+                                        <div class="mb-2">
+                                            <label for="plantilla_id_jugador" class="form-label">Plantilla (Equipo):</label>
+                                            <select id="plantilla_id_jugador" class="form-select">
+                                                <option value="">Todas las plantillas</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="posicion_jugador" class="form-label">Posición:</label>
+                                            <select id="posicion_jugador" class="form-select">
+                                                <option value="">Todas las posiciones</option>
+                                                <option value="Delantero">Delantero</option>
+                                                <option value="Centrocampista">Centrocampista</option>
+                                                <option value="Defensa">Defensa</option>
+                                                <option value="Portero">Portero</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="dorsal_jugador" class="form-label">Dorsal:</label>
+                                            <input type="number" id="dorsal_jugador" class="form-control" min="1" max="99" placeholder="Ej. 10">
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label for="temporada" class="form-label">Temporada:</label>
+                                            <select id="temporada" class="form-select">
+                                                <option value="">Todas las temporadas</option>
+                                                <option value="2025/2026">2025/2026</option>
+                                                <option value="2024/2025">2024/2025</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100 mt-3" id="btn_preview" disabled>
+                                        <i class="bi bi-eye me-2"></i>Generar Vista Previa
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna de Vista Previa del Reporte -->
+                    <div class="col-lg-8 mb-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-bar-graph me-2"></i>Vista Previa del Reporte</h5>
+                                <button id="btn_imprimir" class="btn btn-sm btn-success" style="display:none;">
+                                    <i class="bi bi-printer me-1"></i>Imprimir Reporte (PDF)
+                                </button>
+                            </div>
+                            <div class="card-body bg-light" style="max-height: 600px; overflow-y: auto;">
+                                <div id="reporte-placeholder" class="text-center py-5 text-muted">
+                                    <i class="bi bi-file-earmark-text display-1"></i>
+                                    <p class="mt-3">Selecciona un tipo de reporte y haz clic en "Generar Vista Previa" para previsualizar los datos aquí.</p>
+                                </div>
+                                <div id="reporte-preview-container" style="display:none;">
+                                    <!-- Cabecera del reporte estilo PDF -->
+                                    <div class="bg-white p-4 border rounded shadow-sm">
+                                        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                                            <div>
+                                                <h4 class="text-primary mb-0" id="preview-title">Reporte de Miembros</h4>
+                                                <small class="text-muted">Club Deportivo Educodes FC</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <small class="text-muted" id="preview-gen-date">Fecha de Generación: 21/05/2026</small>
+                                            </div>
+                                        </div>
+
+                                        <div class="alert alert-info py-2 px-3 mb-3 fs-7" id="preview-applied-filters">
+                                            <!-- Filtros aplicados -->
+                                        </div>
+
+                                        <!-- Tabla de datos del reporte -->
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-striped align-middle fs-7" id="preview-table">
+                                                <thead class="table-primary" id="preview-table-thead">
+                                                    <!-- Cabecera de columnas -->
+                                                </thead>
+                                                <tbody id="preview-table-tbody">
+                                                    <!-- Datos -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div id="preview-no-data" class="text-center py-4 text-muted border border-dashed rounded bg-light" style="display:none;">
+                                            No se encontraron registros que coincidan con los filtros aplicados.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de lógica -->
+    <script>
+        let reportDataToPrint = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // Restringir los reportes disponibles en el selector según el rol
+            const user = window.MockDB.getCurrentUser();
+            const rol = user ? user.rol : "";
+            const selectTipo = document.getElementById("tipo_reporte");
+
+            if (rol === "cajero") {
+                // El cajero solo maneja administración y caja
+                const validos = ["", "miembros", "pagos"];
+                Array.from(selectTipo.options).forEach(opt => {
+                    if (!validos.includes(opt.value)) opt.remove();
+                });
+            } else if (rol === "entrenador") {
+                // El entrenador solo tiene acceso a la parte deportiva y eventos
+                const validos = ["", "eventos", "plantillas", "jugadores"];
+                Array.from(selectTipo.options).forEach(opt => {
+                    if (!validos.includes(opt.value)) opt.remove();
+                });
+            }
+
+            // Población de selectores dinámicos
+            cargarMiembrosFiltro();
+            cargarPlantillasFiltro();
+
+            // Alternar los grupos de filtros mostrados
+            selectTipo.addEventListener("change", () => {
+                const tipo = selectTipo.value;
+                
+                // Limpiar filtros activos anteriores
+                document.querySelectorAll(".filter-group").forEach(el => el.style.display = "none");
+                
+                const btnPreview = document.getElementById("btn_preview");
+                if (tipo) {
+                    btnPreview.disabled = false;
+                    document.getElementById(`filtros_${tipo}`).style.display = "block";
+                } else {
+                    btnPreview.disabled = true;
+                }
+            });
+
+            // Procesar la generación del reporte
+            document.getElementById("reporteForm").addEventListener("submit", (e) => {
+                e.preventDefault();
+                
+                const tipo = selectTipo.value;
+                
+                // Doble capa de seguridad para evitar saltos por consola
+                if (rol === "cajero" && !["miembros", "pagos"].includes(tipo)) {
+                    window.location.href = "../../index.html?error=unauthorized";
+                    return;
+                }
+                if (rol === "entrenador" && !["eventos", "plantillas", "jugadores"].includes(tipo)) {
+                    window.location.href = "../../index.html?error=unauthorized";
+                    return;
+                }
+
+                generarReportePreview();
+            });
+
+            // Disparar la ventana de impresión
+            document.getElementById("btn_imprimir").addEventListener("click", () => {
+                if (reportDataToPrint) {
+                    localStorage.setItem("proyecto_clubdeportivo_print_report", JSON.stringify(reportDataToPrint));
+                    window.open("imprimir.html", "_blank");
+                }
+            });
+        });
+
+        function cargarMiembrosFiltro() {
+            const select = document.getElementById("miembro_id_pago");
+            const miembros = window.MockDB.getMembers();
+            miembros.sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo));
+            miembros.forEach(m => {
+                const opt = document.createElement("option");
+                opt.value = m.id;
+                opt.textContent = m.nombre_completo;
+                select.appendChild(opt);
+            });
+        }
+
+        function cargarPlantillasFiltro() {
+            const selectJugadores = document.getElementById("plantilla_id_jugador");
+            const plantillas = window.MockDB.getCategories();
+            plantillas.sort((a, b) => a.nombre_plantilla.localeCompare(b.nombre_plantilla));
+            
+            plantillas.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.id;
+                opt.textContent = p.nombre_plantilla;
+                
+                // Clonar para el otro select si es necesario, o cargarlo por ID
+                selectJugadores.appendChild(opt);
+            });
+        }
+
+        function generarReportePreview() {
+            const tipo = document.getElementById("tipo_reporte").value;
+            const now = new Date();
+            const fechaGen = now.toLocaleDateString("es-ES") + " " + now.toLocaleTimeString("es-ES", { hour: '2-digit', minute: '2-digit' });
+            
+            // Ocultar placeholder
+            document.getElementById("reporte-placeholder").style.display = "none";
+            document.getElementById("reporte-preview-container").style.display = "block";
+            document.getElementById("btn_imprimir").style.display = "block";
+
+            // Seteos comunes
+            document.getElementById("preview-gen-date").textContent = "Fecha de Generación: " + fechaGen;
+
+            // Filtros aplicados para visualización
+            const appliedFiltersEl = document.getElementById("preview-applied-filters");
+            appliedFiltersEl.innerHTML = "<strong>Filtros Aplicados: </strong>";
+
+            let previewTitle = "";
+            let headers = [];
+            let rows = [];
+            let orientation = "portrait"; // portrait o landscape para la impresión
+
+            if (tipo === "miembros") {
+                previewTitle = "Reporte de Miembros";
+                orientation = "landscape";
+                
+                const tMiembro = document.getElementById("tipo_miembro").value;
+                const eMiembro = document.getElementById("estado_miembro").value;
+                const fIngresoDesde = document.getElementById("fecha_ingreso_desde").value;
+                const fIngresoHasta = document.getElementById("fecha_ingreso_hasta").value;
+
+                // Armar textos de filtros
+                let filtersArr = [];
+                if (tMiembro) filtersArr.push(`Tipo: ${tMiembro}`);
+                if (eMiembro) filtersArr.push(`Estado: ${eMiembro}`);
+                if (fIngresoDesde) filtersArr.push(`Ingreso Desde: ${formatDate(fIngresoDesde)}`);
+                if (fIngresoHasta) filtersArr.push(`Ingreso Hasta: ${formatDate(fIngresoHasta)}`);
+                appliedFiltersEl.innerHTML += filtersArr.length > 0 ? filtersArr.join(" | ") : "Todos los miembros (Sin Filtros)";
+
+                headers = ["ID", "Nombre Completo", "Email", "Teléfono", "Doc. Identidad", "F. Nacimiento", "Tipo", "F. Ingreso", "Estado"];
+
+                // Query DB
+                let miembros = window.MockDB.getMembers();
+                if (tMiembro) miembros = miembros.filter(m => m.tipo_miembro === tMiembro);
+                if (eMiembro) miembros = miembros.filter(m => m.estado_miembro === eMiembro);
+                if (fIngresoDesde) miembros = miembros.filter(m => m.fecha_ingreso >= fIngresoDesde);
+                if (fIngresoHasta) miembros = miembros.filter(m => m.fecha_ingreso <= fIngresoHasta);
+
+                rows = miembros.map(m => [
+                    m.id,
+                    m.nombre_completo,
+                    m.email,
+                    m.telefono,
+                    m.documento_identidad,
+                    formatDate(m.fecha_nacimiento),
+                    m.tipo_miembro,
+                    formatDate(m.fecha_ingreso),
+                    m.estado_miembro
+                ]);
+
+            } else if (tipo === "pagos") {
+                previewTitle = "Reporte de Pagos";
+                orientation = "landscape";
+
+                const miembroId = document.getElementById("miembro_id_pago").value;
+                const concepto = document.getElementById("concepto_pago").value;
+                const estado = document.getElementById("estado_pago").value;
+                const metodo = document.getElementById("metodo_pago").value;
+                const fDesde = document.getElementById("fecha_pago_desde").value;
+                const fHasta = document.getElementById("fecha_pago_hasta").value;
+
+                let filtersArr = [];
+                if (miembroId) {
+                    const m = window.MockDB.getMember(miembroId);
+                    filtersArr.push(`Miembro: ${m ? m.nombre_completo : miembroId}`);
+                }
+                if (concepto) filtersArr.push(`Concepto: ${concepto}`);
+                if (estado) filtersArr.push(`Estado: ${estado}`);
+                if (metodo) filtersArr.push(`Método: ${metodo}`);
+                if (fDesde) filtersArr.push(`Pago Desde: ${formatDate(fDesde)}`);
+                if (fHasta) filtersArr.push(`Pago Hasta: ${formatDate(fHasta)}`);
+                appliedFiltersEl.innerHTML += filtersArr.length > 0 ? filtersArr.join(" | ") : "Todos los pagos (Sin Filtros)";
+
+                headers = ["ID Pago", "Miembro", "Concepto", "Monto", "Fecha de Pago", "Método", "Referencia", "Estado", "Registrado Por", "Fecha Registro"];
+
+                let pagos = window.MockDB.getPayments();
+                if (miembroId) pagos = pagos.filter(p => p.miembro_id === parseInt(miembroId));
+                if (concepto) pagos = pagos.filter(p => p.concepto === concepto);
+                if (estado) pagos = pagos.filter(p => p.estado === estado);
+                if (metodo) pagos = pagos.filter(p => p.metodo_pago === metodo);
+                if (fDesde) pagos = pagos.filter(p => p.fecha_pago >= fDesde);
+                if (fHasta) pagos = pagos.filter(p => p.fecha_pago <= fHasta);
+
+                rows = pagos.map(p => [
+                    p.id,
+                    p.nombre_miembro,
+                    p.concepto,
+                    `$${p.monto.toFixed(2)}`,
+                    formatDate(p.fecha_pago),
+                    p.metodo_pago || 'N/A',
+                    p.referencia || 'N/A',
+                    p.estado,
+                    p.registrado_por,
+                    formatDateTime(p.fecha_registro)
+                ]);
+
+            } else if (tipo === "eventos") {
+                previewTitle = "Reporte de Eventos y Torneos";
+                orientation = "landscape";
+
+                const estado = document.getElementById("estado_evento").value;
+                const fDesde = document.getElementById("fecha_evento_desde").value;
+                const fHasta = document.getElementById("fecha_evento_hasta").value;
+
+                let filtersArr = [];
+                if (estado) filtersArr.push(`Estado: ${estado}`);
+                if (fDesde) filtersArr.push(`Desde: ${formatDate(fDesde)}`);
+                if (fHasta) filtersArr.push(`Hasta: ${formatDate(fHasta)}`);
+                appliedFiltersEl.innerHTML += filtersArr.length > 0 ? filtersArr.join(" | ") : "Todos los eventos (Sin Filtros)";
+
+                headers = ["ID", "Nombre del Evento", "Tipo", "Fecha Inicio", "Fecha Fin", "Horario", "Categoría", "Lugar", "Estado"];
+
+                let eventos = window.MockDB.getEvents();
+                if (estado) eventos = eventos.filter(e => e.estado === estado);
+                if (fDesde) eventos = eventos.filter(e => e.fecha_inicio >= fDesde);
+                if (fHasta) eventos = eventos.filter(e => e.fecha_inicio <= fHasta);
+
+                rows = eventos.map(e => {
+                    const horaIni = (e.hora_inicio || "").substring(0, 5);
+                    const horaFin = (e.hora_fin || "").substring(0, 5);
+                    const horaStr = horaIni && horaFin ? `${horaIni} - ${horaFin}` : 'N/A';
+                    return [
+                        e.id,
+                        e.nombre,
+                        e.tipo_evento,
+                        formatDate(e.fecha_inicio),
+                        e.fecha_fin ? formatDate(e.fecha_fin) : 'N/A',
+                        horaStr,
+                        e.categoria || 'N/A',
+                        e.lugar,
+                        e.estado
+                    ];
+                });
+
+            } else if (tipo === "plantillas") {
+                previewTitle = "Reporte de Categorías (Plantillas)";
+                orientation = "landscape";
+
+                const edad = document.getElementById("categoria_edad").value;
+                const estado = document.getElementById("estado_plantilla").value;
+
+                let filtersArr = [];
+                if (edad) filtersArr.push(`Edad: ${edad}`);
+                if (estado) filtersArr.push(`Estado: ${estado}`);
+                appliedFiltersEl.innerHTML += filtersArr.length > 0 ? filtersArr.join(" | ") : "Todas las categorías (Sin Filtros)";
+
+                headers = ["ID", "Nombre de la Plantilla", "Categoría Edad", "Descripción", "Horario Habitual", "Campo Asignado", "Estado"];
+
+                let plantillas = window.MockDB.getCategories();
+                if (edad) plantillas = plantillas.filter(p => p.categoria_edad === edad);
+                if (estado) plantillas = plantillas.filter(p => p.estado_plantilla === estado);
+
+                rows = plantillas.map(p => [
+                    p.id,
+                    p.nombre_plantilla,
+                    p.categoria_edad,
+                    p.descripcion || 'Sin descripción',
+                    p.horario_entrenamiento_habitual || 'N/A',
+                    p.campo_entrenamiento_asignado || 'N/A',
+                    p.estado_plantilla
+                ]);
+
+            } else if (tipo === "jugadores") {
+                previewTitle = "Reporte de Jugadores y Estadísticas";
+                orientation = "landscape";
+
+                const plantillaId = document.getElementById("plantilla_id_jugador").value;
+                const posicion = document.getElementById("posicion_jugador").value;
+                const dorsal = document.getElementById("dorsal_jugador").value;
+                const temp = document.getElementById("temporada").value;
+
+                let filtersArr = [];
+                if (plantillaId) {
+                    const p = window.MockDB.getCategory(plantillaId);
+                    filtersArr.push(`Plantilla: ${p ? p.nombre_plantilla : plantillaId}`);
+                }
+                if (posicion) filtersArr.push(`Posición: ${posicion}`);
+                if (dorsal) filtersArr.push(`Dorsal: ${dorsal}`);
+                if (temp) filtersArr.push(`Temporada: ${temp}`);
+                appliedFiltersEl.innerHTML += filtersArr.length > 0 ? filtersArr.join(" | ") : "Todos los jugadores (Sin Filtros)";
+
+                headers = ["ID", "Jugador", "Plantilla", "Dorsal", "Posición", "Temp.", "PJ", "Min.", "Goles", "Asist.", "Amar.", "Rojas"];
+
+                // Query members who are players
+                let jugadores = window.MockDB.getMembers().filter(m => m.tipo_miembro === "Jugador");
+                if (plantillaId) jugadores = jugadores.filter(j => j.plantilla_id === parseInt(plantillaId));
+                if (posicion) jugadores = jugadores.filter(j => j.posicion === posicion);
+                if (dorsal) jugadores = jugadores.filter(j => j.dorsal === parseInt(dorsal));
+
+                rows = [];
+                jugadores.forEach(j => {
+                    let stats = window.MockDB.getStatsByPlayer(j.id);
+                    if (temp) stats = stats.filter(s => s.temporada === temp);
+
+                    if (stats.length > 0) {
+                        stats.forEach(s => {
+                            rows.push([
+                                j.id,
+                                j.nombre_completo,
+                                j.nombre_plantilla,
+                                j.dorsal || 'N/A',
+                                j.posicion || 'N/A',
+                                s.temporada,
+                                s.partidos_jugados,
+                                s.minutos_jugados,
+                                s.goles_anotados,
+                                s.asistencias,
+                                s.tarjetas_amarillas,
+                                s.tarjetas_rojas
+                            ]);
+                        });
+                    } else if (!temp) {
+                        // Si no tiene estadísticas registradas pero no filtramos por temporada, mostrarlo con ceros
+                        rows.push([
+                            j.id,
+                            j.nombre_completo,
+                            j.nombre_plantilla,
+                            j.dorsal || 'N/A',
+                            j.posicion || 'N/A',
+                            'N/A', 0, 0, 0, 0, 0, 0
+                        ]);
+                    }
+                });
+            }
+
+            // Renderizar datos en la vista previa
+            document.getElementById("preview-title").textContent = previewTitle;
+
+            // Render headers
+            const thead = document.getElementById("preview-table-thead");
+            thead.innerHTML = `<tr>${headers.map(h => `<th>${escapeHTML(h)}</th>`).join('')}</tr>`;
+
+            // Render rows
+            const tbody = document.getElementById("preview-table-tbody");
+            tbody.innerHTML = "";
+
+            const noDataEl = document.getElementById("preview-no-data");
+            const tableEl = document.getElementById("preview-table");
+
+            if (rows.length > 0) {
+                noDataEl.style.display = "none";
+                tableEl.style.display = "table";
+                
+                rows.forEach(r => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = r.map((val, idx) => {
+                        let alignClass = "";
+                        // Alinear números o IDs a la derecha o centro
+                        if (idx === 0 || val === 'N/A' || String(val).startsWith('$')) {
+                            alignClass = "text-center";
+                        }
+                        return `<td class="${alignClass}">${escapeHTML(String(val))}</td>`;
+                    }).join('');
+                    tbody.appendChild(tr);
+                });
+            } else {
+                noDataEl.style.display = "block";
+                tableEl.style.display = "none";
+            }
+
+            // Guardar para imprimir (metemos el tipo para validar permisos en la otra ventana)
+            reportDataToPrint = {
+                title: previewTitle,
+                date: fechaGen,
+                filters: appliedFiltersEl.textContent.replace("Filtros Aplicados:", "").trim(),
+                headers: headers,
+                rows: rows,
+                orientation: orientation,
+                type: tipo
+            };
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            try {
+                const [year, month, day] = dateStr.split('-');
+                return `${day}/${month}/${year}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return 'N/A';
+            try {
+                const [datePart, timePart] = dateTimeStr.split(' ');
+                const [year, month, day] = datePart.split('-');
+                const timeStr = (timePart || "").substring(0, 5);
+                return `${day}/${month}/${year} ${timeStr}`;
+            } catch(e) {
+                return dateTimeStr;
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

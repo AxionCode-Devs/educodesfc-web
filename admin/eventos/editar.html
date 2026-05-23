@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Evento - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Editar Evento";
+        window.activePage = "eventos";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 id="page-subtitle">Editar Evento</h2>
+                    <a href="index.html" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a la Lista
+                    </a>
+                </div>
+
+                <!-- Mensaje de error local si surge alguno -->
+                <div id="error-alert" class="alert alert-danger mb-4" role="alert" style="display: none;"></div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <form id="editar-evento-form" class="form-modern">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="nombre" class="form-label">Nombre del Evento:</label>
+                                    <input type="text" id="nombre" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="tipo_evento" class="form-label">Tipo de Evento:</label>
+                                    <select id="tipo_evento" class="form-select" required>
+                                        <option value="">Selecciona un tipo</option>
+                                        <option value="Partido">Partido</option>
+                                        <option value="Entrenamiento">Entrenamiento</option>
+                                        <option value="Reunión">Reunión</option>
+                                        <option value="Torneo">Torneo</option>
+                                        <option value="Actividad Social">Actividad Social</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="descripcion" class="form-label">Descripción:</label>
+                                <textarea id="descripcion" class="form-control" rows="3"></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="fecha_inicio" class="form-label">Fecha de Inicio:</label>
+                                    <input type="date" id="fecha_inicio" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="fecha_fin" class="form-label">Fecha de Fin (Opcional):</label>
+                                    <input type="date" id="fecha_fin" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="hora_inicio" class="form-label">Hora de Inicio (Opcional):</label>
+                                    <input type="time" id="hora_inicio" class="form-control">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="hora_fin" class="form-label">Hora de Fin (Opcional):</label>
+                                    <input type="time" id="hora_fin" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="categoria" class="form-label">Categoría (Opcional):</label>
+                                    <select id="categoria" class="form-select">
+                                        <option value="">N/A o Selecciona una categoría</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="estado" class="form-label">Estado del Evento:</label>
+                                    <select id="estado" class="form-select" required>
+                                        <option value="">Selecciona un estado</option>
+                                        <option value="Programado">Programado</option>
+                                        <option value="En Curso">En Curso</option>
+                                        <option value="Finalizado">Finalizado</option>
+                                        <option value="Cancelado">Cancelado</option>
+                                        <option value="Pospuesto">Pospuesto</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="lugar" class="form-label">Lugar del Evento:</label>
+                                <select id="lugar" class="form-select" required>
+                                    <option value="">Selecciona un lugar</option>
+                                    <option value="Cancha Principal del Club">Cancha Principal del Club</option>
+                                    <option value="Estadio Nacional Jorge 'Mágico' González">Estadio Nacional Jorge 'Mágico' González</option>
+                                    <option value="Gimnasio Nacional Adolfo Pineda">Gimnasio Nacional Adolfo Pineda</option>
+                                    <option value="Otro Lugar Externo (Especificar en descripción)">Otro Lugar Externo (Especificar en descripción)</option>
+                                </select>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="index.html" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-save me-1"></i>Actualizar Evento
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y control de envío -->
+    <script>
+        let eventId = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Validar que el usuario tenga rol adecuado para editar
+            const user = window.MockDB.getCurrentUser();
+            if (user && user.rol === "cajero") {
+                // El cajero solo gestiona pagos
+                document.getElementById("error-alert").textContent = "No tienes permiso para editar eventos. Redirigiendo...";
+                document.getElementById("error-alert").style.display = "block";
+                setTimeout(() => {
+                    window.location.href = "index.html";
+                }, 2000);
+                return;
+            }
+
+            // 2. Obtener el ID del evento de los query params
+            const urlParams = new URLSearchParams(window.location.search);
+            eventId = parseInt(urlParams.get("id"));
+
+            if (!eventId || isNaN(eventId)) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("ID de evento no válido.");
+                return;
+            }
+
+            // 3. Cargar las categorías/plantillas de forma dinámica
+            cargarCategorias();
+
+            // 4. Obtener el evento de la base de datos local
+            const evento = window.MockDB.getEvent(eventId);
+            if (!evento) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("El evento solicitado no existe.");
+                return;
+            }
+
+            // 5. Rellenar los campos del formulario
+            document.getElementById("page-subtitle").textContent = `Editar Evento: ${evento.nombre}`;
+            document.getElementById("nombre").value = evento.nombre;
+            document.getElementById("tipo_evento").value = evento.tipo_evento;
+            document.getElementById("descripcion").value = evento.descripcion || "";
+            document.getElementById("fecha_inicio").value = evento.fecha_inicio;
+            document.getElementById("fecha_fin").value = evento.fecha_fin || evento.fecha_inicio;
+            
+            // Las horas pueden estar en formato HH:MM:SS, recortar a HH:MM para el input type="time"
+            if (evento.hora_inicio) {
+                document.getElementById("hora_inicio").value = evento.hora_inicio.substring(0, 5);
+            }
+            if (evento.hora_fin) {
+                document.getElementById("hora_fin").value = evento.hora_fin.substring(0, 5);
+            }
+            
+            document.getElementById("categoria").value = evento.categoria || "";
+            document.getElementById("estado").value = evento.estado;
+            document.getElementById("lugar").value = evento.lugar;
+
+            // 6. Controlar el envío del formulario
+            const form = document.getElementById("editar-evento-form");
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+
+                const nombre = document.getElementById("nombre").value.trim();
+                const tipo_evento = document.getElementById("tipo_evento").value;
+                const descripcion = document.getElementById("descripcion").value.trim();
+                const fecha_inicio = document.getElementById("fecha_inicio").value;
+                const fecha_fin = document.getElementById("fecha_fin").value || fecha_inicio;
+                
+                let hora_inicio = document.getElementById("hora_inicio").value;
+                if (hora_inicio && hora_inicio.length === 5) {
+                    hora_inicio += ":00";
+                }
+                let hora_fin = document.getElementById("hora_fin").value;
+                if (hora_fin && hora_fin.length === 5) {
+                    hora_fin += ":00";
+                }
+
+                const categoria = document.getElementById("categoria").value;
+                const estado = document.getElementById("estado").value;
+                const lugar = document.getElementById("lugar").value;
+
+                try {
+                    const updatedEvent = window.MockDB.updateEvent(eventId, {
+                        nombre,
+                        tipo_evento,
+                        descripcion,
+                        fecha_inicio,
+                        fecha_fin,
+                        hora_inicio,
+                        hora_fin,
+                        categoria,
+                        lugar,
+                        estado
+                    });
+
+                    if (updatedEvent) {
+                        window.location.href = "index.html?status=success_edit";
+                    } else {
+                        throw new Error("No se pudo actualizar el evento.");
+                    }
+                } catch (error) {
+                    const errorBox = document.getElementById("error-alert");
+                    errorBox.textContent = "Error al editar el evento: " + error.message;
+                    errorBox.style.display = "block";
+                }
+            });
+        });
+
+        function cargarCategorias() {
+            const selectCat = document.getElementById("categoria");
+            const categorias = window.MockDB.getCategories();
+            
+            // Obtener nombres de plantilla únicos
+            const nombresUnicos = [...new Set(categorias.map(c => c.nombre_plantilla))].sort();
+
+            nombresUnicos.forEach(nombre => {
+                const opt = document.createElement("option");
+                opt.value = nombre;
+                opt.textContent = nombre;
+                selectCat.appendChild(opt);
+            });
+        }
+    </script>
+</body>
+</html>

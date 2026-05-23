@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalles del Miembro - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Detalles del Miembro";
+        window.activePage = "equipo";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 id="page-subtitle">Detalles del Miembro</h2>
+                    <a href="index.html" class="btn btn-outline-primary"> 
+                        <i class="bi bi-arrow-left-circle me-2"></i>Volver a Equipo
+                    </a>
+                </div>
+
+                <div id="member-not-found" class="alert alert-danger" style="display: none;">
+                    Miembro no encontrado.
+                </div>
+
+                <div id="member-details-container" style="display: none;">
+                    <!-- Información Personal -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0"><i class="bi bi-person-fill me-2"></i>Información Personal</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Nombre Completo:</strong> <span id="m-name"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Email:</strong> <span id="m-email"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Teléfono:</strong> <span id="m-phone"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Fecha de Nacimiento:</strong> <span id="m-birth"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Documento de Identidad:</strong> <span id="m-doc"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Tipo de Miembro (Club):</strong> <span id="m-type"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Fecha de Ingreso:</strong> <span id="m-joined"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Estado del Miembro:</strong> <span id="m-status"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información del Jugador (Opcional) -->
+                    <div class="card shadow-sm mb-4" id="player-card" style="display: none;">
+                        <div class="card-header bg-success text-white">
+                            <h4 class="mb-0"><i class="bi bi-person-bounding-box me-2"></i>Información del Jugador</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Dorsal:</strong> <span id="m-dorsal"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Posición:</strong> <span id="m-pos"></span></p>
+                                </div>
+                                <div class="col-md-12">
+                                    <p class="mb-1"><strong>Historial Deportivo:</strong></p>
+                                    <div class="p-3 bg-light border rounded">
+                                        <span id="m-history">Sin historial registrado.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asignación a Plantilla -->
+                    <div class="card shadow-sm mb-4" id="category-card" style="display: none;">
+                        <div class="card-header bg-secondary text-white">
+                            <h4 class="mb-0"><i class="bi bi-trophy me-2"></i>Asignación a Plantilla/Categoría</h4>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Plantilla Asignada:</strong> <span id="m-category-link"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Obtener ID del miembro
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has("id")) {
+                window.location.href = "index.html?status=error&message=" + encodeURIComponent("ID de miembro no proporcionado.");
+                return;
+            }
+
+            const mId = parseInt(urlParams.get("id"));
+            const m = window.MockDB.getMember(mId);
+
+            if (!m) {
+                document.getElementById("member-not-found").style.display = "block";
+                return;
+            }
+
+            // Rellenar cabecera y título
+            document.getElementById("page-subtitle").textContent = `Detalles del Miembro: ${m.nombre_completo}`;
+            document.getElementById("m-name").textContent = m.nombre_completo;
+            document.getElementById("m-email").textContent = m.email || "N/A";
+            document.getElementById("m-phone").textContent = m.telefono || "N/A";
+            document.getElementById("m-doc").textContent = m.documento_identidad || "N/A";
+
+            // Formatear fechas
+            document.getElementById("m-birth").textContent = m.fecha_nacimiento ? formatDate(m.fecha_nacimiento) : "N/A";
+            document.getElementById("m-joined").textContent = m.fecha_ingreso ? formatDate(m.fecha_ingreso) : "N/A";
+
+            // Tipo de miembro badge
+            const typeSpan = document.getElementById("m-type");
+            const type = m.tipo_miembro || "N/A";
+            let typeBadgeClass = "dark";
+            if (type === "Jugador") typeBadgeClass = "primary";
+            else if (type === "Entrenador") typeBadgeClass = "info";
+            else if (type === "Directivo") typeBadgeClass = "danger";
+            else if (type === "Personal de Apoyo") typeBadgeClass = "secondary";
+            else if (type === "Socio/Aficionado") typeBadgeClass = "warning text-dark";
+            typeSpan.className = `badge bg-${typeBadgeClass}`;
+            typeSpan.textContent = type;
+
+            // Estado badge
+            const statusSpan = document.getElementById("m-status");
+            const estado = m.estado_miembro || "Activo";
+            let statusBadgeClass = "secondary";
+            if (estado === "Activo") statusBadgeClass = "success";
+            else if (estado === "Inactivo") statusBadgeClass = "danger";
+            else if (estado === "Lesionado" || estado === "Baja Temporal") statusBadgeClass = "warning text-dark";
+            statusSpan.className = `badge bg-${statusBadgeClass}`;
+            statusSpan.textContent = estado;
+
+            // Si es jugador, rellenar y mostrar tarjeta
+            if (type === "Jugador") {
+                document.getElementById("player-card").style.display = "block";
+                document.getElementById("m-dorsal").textContent = m.dorsal || "Sin dorsal asignado";
+                document.getElementById("m-pos").textContent = m.posicion || "Sin posición asignada";
+                document.getElementById("m-history").textContent = m.historial_deportivo || "Sin historial registrado.";
+            }
+
+            // Mostrar plantilla asignada si aplica
+            if (m.plantilla_id) {
+                document.getElementById("category-card").style.display = "block";
+                const catLink = document.getElementById("m-category-link");
+                catLink.innerHTML = `<a href="ver_categoria.html?id=${m.plantilla_id}" class="fw-semibold text-decoration-none">${escapeHTML(m.nombre_plantilla)}</a>`;
+            } else {
+                document.getElementById("category-card").style.display = "block";
+                document.getElementById("m-category-link").textContent = "Sin Asignar";
+            }
+
+            document.getElementById("member-details-container").style.display = "block";
+        });
+
+        function formatDate(dateStr) {
+            try {
+                const [year, month, day] = dateStr.split('-');
+                return `${day}/${month}/${year}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

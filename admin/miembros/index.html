@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Miembros - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Gestión de Miembros";
+        window.activePage = "miembros";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Miembros del Club</h2>
+                    <a href="../../index.html" class="btn btn-outline-primary"><i class="bi bi-arrow-left-circle me-2"></i>Volver al panel</a>
+                </div>
+
+                <!-- Mensaje de Alerta de Estado -->
+                <div id="status-alert" class="alert alert-success alert-dismissible fade show mb-4" role="alert" style="display: none;">
+                    <span id="status-message"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+
+                <div class="action-buttons mb-4">
+                    <a href="crear.html" class="btn btn-success"><i class="bi bi-person-plus-fill me-2"></i>Agregar Nuevo Miembro</a>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Lista de Miembros Registrados</h5>
+
+                        <!-- Formulario de filtros (Manejado por JS) -->
+                        <form id="filter-form" class="mb-4" onsubmit="event.preventDefault(); applyFilters();">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="buscar" class="form-label visually-hidden">Buscar</label>
+                                    <input type="text" class="form-control" name="buscar" id="buscar" placeholder="Buscar por nombre, email o documento">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filtro_tipo_miembro" class="form-label visually-hidden">Tipo de Miembro</label>
+                                    <select class="form-select" name="filtro_tipo_miembro" id="filtro_tipo_miembro">
+                                        <option value="">Todos los Tipos</option>
+                                        <option value="Jugador">Jugador</option>
+                                        <option value="Entrenador">Entrenador</option>
+                                        <option value="Directivo">Directivo</option>
+                                        <option value="Socio/Aficionado">Socio/Aficionado</option>
+                                        <option value="Personal de Apoyo">Personal de Apoyo</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filtro_plantilla_id" class="form-label visually-hidden">Plantilla</label>
+                                    <select class="form-select" name="filtro_plantilla_id" id="filtro_plantilla_id">
+                                        <option value="">Todas las Plantillas</option>
+                                        <!-- Opciones cargadas dinámicamente -->
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="filtro_estado_miembro" class="form-label visually-hidden">Estado</label>
+                                    <select class="form-select" name="filtro_estado_miembro" id="filtro_estado_miembro">
+                                        <option value="">Todos los Estados</option>
+                                        <option value="Activo">Activo</option>
+                                        <option value="Inactivo">Inactivo</option>
+                                        <option value="Lesionado">Lesionado</option>
+                                        <option value="Baja Temporal">Baja Temporal</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <button class="btn btn-primary w-100" type="submit"><i class="bi bi-funnel-fill me-2"></i>Aplicar Filtros</button>
+                                    <button class="btn btn-outline-secondary mt-2 w-100" type="button" onclick="clearFilters()"><i class="bi bi-eraser-fill me-2"></i>Limpiar Filtros</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Email</th>
+                                        <th>Teléfono</th>
+                                        <th>Documento</th>
+                                        <th>Fecha Nac.</th>
+                                        <th>Tipo Miembro</th>
+                                        <th>Plantilla Asignada</th> 
+                                        <th>Dorsal</th>
+                                        <th>Posición</th>
+                                        <th>Estado</th>
+                                        <th>Ingreso</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="members-tbody">
+                                    <tr>
+                                        <td colspan="12" class="text-center py-4">Cargando miembros...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y filtros -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Mostrar alertas basadas en Query Params de estado
+            showQueryParamsAlerts();
+
+            // 2. Cargar selector de plantillas
+            const plantillas = window.MockDB.getCategories();
+            const selectPlantilla = document.getElementById("filtro_plantilla_id");
+            plantillas.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.id;
+                opt.textContent = p.nombre_plantilla;
+                selectPlantilla.appendChild(opt);
+            });
+            const optNull = document.createElement("option");
+            optNull.value = "NULL";
+            optNull.textContent = "Sin Asignar";
+            selectPlantilla.appendChild(optNull);
+
+            // 3. Renderizar tabla completa inicialmente
+            renderMembersTable();
+
+            // 4. Agregar eventos para filtros en tiempo real (premium feeling)
+            document.getElementById("buscar").addEventListener("input", applyFilters);
+            document.getElementById("filtro_tipo_miembro").addEventListener("change", applyFilters);
+            document.getElementById("filtro_plantilla_id").addEventListener("change", applyFilters);
+            document.getElementById("filtro_estado_miembro").addEventListener("change", applyFilters);
+        });
+
+        function renderMembersTable(filteredMembers) {
+            const tbody = document.getElementById("members-tbody");
+            tbody.innerHTML = "";
+
+            const members = filteredMembers || window.MockDB.getMembers();
+
+            if (members.length > 0) {
+                members.forEach(m => {
+                    const row = document.createElement("tr");
+
+                    // Badge del tipo de miembro
+                    let badgeClass = "badge bg-light text-dark";
+                    switch(m.tipo_miembro) {
+                        case 'Jugador': badgeClass = 'badge bg-info text-dark'; break;
+                        case 'Entrenador': badgeClass = 'badge bg-success'; break;
+                        case 'Directivo': badgeClass = 'badge bg-primary'; break;
+                        case 'Socio/Aficionado': badgeClass = 'badge bg-secondary'; break;
+                        case 'Personal de Apoyo': badgeClass = 'badge bg-warning text-dark'; break;
+                    }
+
+                    // Badge del estado de miembro
+                    let statusBadgeClass = "badge bg-light text-dark";
+                    switch(m.estado_miembro) {
+                        case 'Activo': statusBadgeClass = 'badge bg-success'; break;
+                        case 'Inactivo': statusBadgeClass = 'badge bg-danger'; break;
+                        case 'Lesionado': statusBadgeClass = 'badge bg-warning text-dark'; break;
+                        case 'Baja Temporal': statusBadgeClass = 'badge bg-secondary'; break;
+                    }
+
+                    // Fechas formateadas
+                    let fechaNac = m.fecha_nacimiento ? formatDate(m.fecha_nacimiento) : 'N/A';
+                    let fechaIng = m.fecha_ingreso ? formatDate(m.fecha_ingreso) : 'N/A';
+
+                    row.innerHTML = `
+                        <td><strong>${escapeHTML(m.nombre_completo)}</strong></td>
+                        <td>${escapeHTML(m.email)}</td>
+                        <td>${escapeHTML(m.telefono)}</td>
+                        <td>${escapeHTML(m.documento_identidad || 'N/A')}</td>
+                        <td>${fechaNac}</td>
+                        <td><span class="${badgeClass}">${escapeHTML(m.tipo_miembro)}</span></td>
+                        <td>${escapeHTML(m.nombre_plantilla)}</td>
+                        <td>${m.dorsal !== null ? m.dorsal : 'N/A'}</td>
+                        <td>${escapeHTML(m.posicion || 'N/A')}</td>
+                        <td><span class="${statusBadgeClass}">${escapeHTML(m.estado_miembro)}</span></td>
+                        <td>${fechaIng}</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="editar.html?id=${m.id}" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                <button onclick="eliminarMiembro(${m.id}, '${escapeJS(m.nombre_completo)}')" class="btn btn-danger btn-sm" title="Eliminar"><i class="bi bi-trash-fill"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="text-center py-4">No se encontraron miembros con los filtros aplicados.</td>
+                    </tr>
+                `;
+            }
+        }
+
+        function applyFilters() {
+            const buscarVal = document.getElementById("buscar").value.toLowerCase().trim();
+            const tipoVal = document.getElementById("filtro_tipo_miembro").value;
+            const plantillaVal = document.getElementById("filtro_plantilla_id").value;
+            const estadoVal = document.getElementById("filtro_estado_miembro").value;
+
+            const allMembers = window.MockDB.getMembers();
+
+            const filtered = allMembers.filter(m => {
+                // Filtro búsqueda texto (nombre, email, dni)
+                if (buscarVal) {
+                    const matchNombre = m.nombre_completo.toLowerCase().includes(buscarVal);
+                    const matchEmail = m.email.toLowerCase().includes(buscarVal);
+                    const matchDoc = (m.documento_identidad || "").toLowerCase().includes(buscarVal);
+                    if (!matchNombre && !matchEmail && !matchDoc) return false;
+                }
+
+                // Filtro tipo miembro
+                if (tipoVal && m.tipo_miembro !== tipoVal) return false;
+
+                // Filtro plantilla
+                if (plantillaVal) {
+                    if (plantillaVal === "NULL") {
+                        if (m.plantilla_id !== null) return false;
+                    } else {
+                        if (m.plantilla_id !== parseInt(plantillaVal)) return false;
+                    }
+                }
+
+                // Filtro estado miembro
+                if (estadoVal && m.estado_miembro !== estadoVal) return false;
+
+                return true;
+            });
+
+            renderMembersTable(filtered);
+        }
+
+        function clearFilters() {
+            document.getElementById("filter-form").reset();
+            renderMembersTable();
+        }
+
+        function eliminarMiembro(id, nombre) {
+            if (confirm(`¿Estás completamente seguro de eliminar a ${nombre}? Esta acción también borrará sus pagos y estadísticas registradas.`)) {
+                const success = window.MockDB.deleteMember(id);
+                if (success) {
+                    // Recargar con mensaje de éxito
+                    window.location.href = "index.html?status=success_delete";
+                } else {
+                    window.location.href = "index.html?status=error&message=" + encodeURIComponent("No se pudo eliminar al miembro.");
+                }
+            }
+        }
+
+        function showQueryParamsAlerts() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const alertContainer = document.getElementById("status-alert");
+            const alertMessage = document.getElementById("status-message");
+            
+            if (urlParams.has("status")) {
+                const status = urlParams.get("status");
+                alertContainer.style.display = "block";
+                
+                // Configurar tipo de alerta
+                alertContainer.className = "alert alert-success alert-dismissible fade show mb-4";
+                
+                if (status === "success_add") {
+                    alertMessage.textContent = "¡Miembro agregado correctamente a la base de datos!";
+                } else if (status === "success_edit") {
+                    alertMessage.textContent = "¡Los datos del miembro han sido actualizados con éxito!";
+                } else if (status === "success_delete") {
+                    alertMessage.textContent = "¡Miembro eliminado del club correctamente!";
+                } else if (status === "error") {
+                    alertContainer.className = "alert alert-danger alert-dismissible fade show mb-4";
+                    const msg = urlParams.get("message") || "Ocurrió un error inesperado.";
+                    alertMessage.textContent = msg;
+                }
+
+                // Limpiar query params de la URL para que no reaparezca el alert al refrescar
+                const newUrl = window.location.pathname;
+                history.replaceState(null, '', newUrl);
+
+                // Autocerrar a los 5 segundos
+                setTimeout(() => {
+                    alertContainer.style.opacity = '0';
+                    alertContainer.style.transition = 'opacity 0.5s ease-out';
+                    setTimeout(() => { alertContainer.style.display = 'none'; alertContainer.style.opacity = '1'; }, 500);
+                }, 5000);
+            }
+        }
+
+        function formatDate(dateStr) {
+            try {
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
+                const date = new Date(dateStr);
+                const d = String(date.getDate()).padStart(2, '0');
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const y = date.getFullYear();
+                return `${d}/${m}/${y}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+
+        function escapeJS(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'")
+                      .replace(/"/g, '\\"');
+        }
+    </script>
+</body>
+</html>

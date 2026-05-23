@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Miembro - Club Deportivo</title>
+
+    <!-- Scripts de Mocking y Layout -->
+    <script src="../../js/mock-db.js"></script>
+    <script src="../../js/layout.js" defer></script>
+    <script>
+        window.pageTitle = "Editar Miembro";
+        window.activePage = "miembros";
+    </script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar inyectado dinámicamente -->
+        <div id="layout-sidebar"></div>
+
+        <main class="main-content">
+            <!-- Header inyectado dinámicamente -->
+            <div id="layout-top-header"></div>
+
+            <section class="dashboard-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Editar Miembro: <span id="member-name-title">Cargando...</span></h2>
+                    <a href="index.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left-circle me-2"></i>Volver a la Lista</a>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <!-- Alertas de errores -->
+                        <div id="validation-errors" class="alert alert-danger" role="alert" style="display: none;">
+                            <ul id="errors-list"></ul>
+                        </div>
+
+                        <form id="member-form" novalidate>
+                            <div class="mb-3">
+                                <label for="nombre_completo" class="form-label">Nombre completo</label>
+                                <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="telefono" class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" id="telefono" name="telefono" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="documento_identidad" class="form-label">Documento de Identidad (DNI/NIE/Cédula)</label>
+                                <input type="text" class="form-control" id="documento_identidad" name="documento_identidad">
+                            </div>
+                            <div class="mb-3">
+                                <label for="fecha_nacimiento" class="form-label">Fecha de Nacimiento</label>
+                                <input type="date" class="form-control" id="fecha_nacimiento" name="fecha_nacimiento">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="tipo_miembro" class="form-label">Tipo de Miembro</label>
+                                <select class="form-select" id="tipo_miembro" name="tipo_miembro" required>
+                                    <option value="">Seleccione un tipo de miembro</option>
+                                    <option value="Jugador">Jugador</option>
+                                    <option value="Entrenador">Entrenador</option>
+                                    <option value="Directivo">Directivo</option>
+                                    <option value="Socio/Aficionado">Socio/Aficionado</option>
+                                    <option value="Personal de Apoyo">Personal de Apoyo</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="plantilla_id" class="form-label">Plantilla Asignada</label>
+                                <select class="form-select" id="plantilla_id" name="plantilla_id">
+                                    <option value="">Sin Plantilla (Opcional)</option>
+                                    <!-- Opciones inyectadas dinámicamente -->
+                                </select>
+                                <small class="form-text text-muted">Asigna este miembro a una plantilla o categoría específica.</small>
+                            </div>
+
+                            <!-- Sección condicional para Jugadores -->
+                            <div id="jugador-fields" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="dorsal" class="form-label">Dorsal (solo para jugadores)</label>
+                                    <input type="number" class="form-control" id="dorsal" name="dorsal" placeholder="Opcional">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="posicion" class="form-label">Posición de Juego (solo para jugadores)</label>
+                                    <select class="form-select" id="posicion" name="posicion">
+                                        <option value="">Seleccione una posición (Opcional)</option>
+                                        <option value="Portero">Portero</option>
+                                        <option value="Defensa">Defensa</option>
+                                        <option value="Centrocampista">Centrocampista</option>
+                                        <option value="Delantero">Delantero</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="estado_miembro" class="form-label">Estado del Miembro</label>
+                                <select class="form-select" id="estado_miembro" name="estado_miembro" required>
+                                    <option value="Activo">Activo</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                    <option value="Lesionado">Lesionado</option>
+                                    <option value="Baja Temporal">Baja Temporal</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="fecha_ingreso" class="form-label">Fecha de ingreso</label>
+                                <input type="date" class="form-control" id="fecha_ingreso" name="fecha_ingreso" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning w-100"><i class="bi bi-save me-2"></i>Guardar Cambios</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de inicialización y envío -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (!window.MockDB) return;
+
+            // 1. Obtener ID del miembro
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get("id");
+            if (!id) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            const m = window.MockDB.getMember(id);
+            if (!m) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            // 2. Establecer título
+            document.getElementById("member-name-title").textContent = m.nombre_completo;
+
+            // 3. Cargar plantilla_id dinámicamente
+            const selectPlantilla = document.getElementById("plantilla_id");
+            const plantillas = window.MockDB.getCategories();
+            plantillas.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.id;
+                opt.textContent = p.nombre_plantilla;
+                if (m.plantilla_id === p.id) {
+                    opt.selected = true;
+                }
+                selectPlantilla.appendChild(opt);
+            });
+
+            // 4. Rellenar campos del formulario
+            document.getElementById("nombre_completo").value = m.nombre_completo;
+            document.getElementById("email").value = m.email;
+            document.getElementById("telefono").value = m.telefono;
+            document.getElementById("documento_identidad").value = m.documento_identidad || "";
+            document.getElementById("fecha_nacimiento").value = m.fecha_nacimiento || "";
+            document.getElementById("tipo_miembro").value = m.tipo_miembro;
+            document.getElementById("estado_miembro").value = m.estado_miembro;
+            document.getElementById("fecha_ingreso").value = m.fecha_ingreso;
+
+            // 5. Configurar sección condicional de jugador
+            const tipoMiembroSelect = document.getElementById("tipo_miembro");
+            const jugadorFields = document.getElementById("jugador-fields");
+
+            function toggleJugadorFields() {
+                if (tipoMiembroSelect.value === "Jugador") {
+                    jugadorFields.style.display = "block";
+                } else {
+                    jugadorFields.style.display = "none";
+                    document.getElementById("dorsal").value = "";
+                    document.getElementById("posicion").value = "";
+                }
+            }
+
+            tipoMiembroSelect.addEventListener("change", toggleJugadorFields);
+            
+            // Si es jugador inicialmente, rellenar sus campos y mostrarlos
+            if (m.tipo_miembro === "Jugador") {
+                toggleJugadorFields();
+                document.getElementById("dorsal").value = m.dorsal !== null ? m.dorsal : "";
+                document.getElementById("posicion").value = m.posicion || "";
+            }
+
+            // 6. Procesar el formulario al enviar
+            document.getElementById("member-form").addEventListener("submit", function(event) {
+                event.preventDefault();
+
+                const errorsList = document.getElementById("errors-list");
+                const errorsAlert = document.getElementById("validation-errors");
+                errorsList.innerHTML = "";
+                errorsAlert.style.display = "none";
+
+                // Valores
+                const nombre = document.getElementById("nombre_completo").value.trim();
+                const email = document.getElementById("email").value.trim();
+                const telefono = document.getElementById("telefono").value.trim();
+                const dni = document.getElementById("documento_identidad").value.trim();
+                const fechaNac = document.getElementById("fecha_nacimiento").value;
+                const tipo = document.getElementById("tipo_miembro").value;
+                const plantillaId = document.getElementById("plantilla_id").value;
+                const dorsal = document.getElementById("dorsal").value;
+                const posicion = document.getElementById("posicion").value;
+                const estado = document.getElementById("estado_miembro").value;
+                const fechaIng = document.getElementById("fecha_ingreso").value;
+
+                // Validación simple
+                const errors = [];
+                if (!nombre) errors.push("El nombre completo es requerido.");
+                if (!email) errors.push("El correo electrónico es requerido.");
+                if (!telefono) errors.push("El teléfono de contacto es requerido.");
+                if (!tipo) errors.push("Debe seleccionar un tipo de miembro.");
+                if (!fechaIng) errors.push("La fecha de ingreso al club es requerida.");
+
+                if (errors.length > 0) {
+                    errors.forEach(err => {
+                        const li = document.createElement("li");
+                        li.textContent = err;
+                        errorsList.appendChild(li);
+                    });
+                    errorsAlert.style.display = "block";
+                    window.scrollTo(0, 0);
+                    return;
+                }
+
+                // Guardar
+                const updatedMemberData = {
+                    nombre_completo: nombre,
+                    email: email,
+                    telefono: telefono,
+                    documento_identidad: dni,
+                    fecha_nacimiento: fechaNac,
+                    tipo_miembro: tipo,
+                    plantilla_id: plantillaId || null,
+                    dorsal: dorsal || null,
+                    posicion: posicion || "",
+                    estado_miembro: estado,
+                    fecha_ingreso: fechaIng
+                };
+
+                window.MockDB.updateMember(id, updatedMemberData);
+
+                // Redirigir a listado con éxito
+                window.location.href = "index.html?status=success_edit";
+            });
+        });
+    </script>
+</body>
+</html>
