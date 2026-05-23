@@ -3,7 +3,6 @@ const prefix = getPathPrefix();
 
 // Control inmediato de sesión y roles (evita el molesto parpadeo de interfaz no autorizada)
 const currentUser = window.MockDB ? window.MockDB.getCurrentUser() : null;
-
 // Normalizar la ruta de forma compatible con servidores modernos/Cloudflare (que quitan la extensión .html y barras finales)
 const normalizedPath = window.location.pathname.toLowerCase().replace(/\/$/, "");
 const isLoginPage = normalizedPath.endsWith("login.html") || normalizedPath.endsWith("login.php") || normalizedPath.endsWith("/login") || normalizedPath === "login";
